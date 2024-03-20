@@ -33,7 +33,9 @@ class SuperConvTranspose2d(nn.ConvTranspose2d):
                                                    dilation, padding_mode)
 
     def forward(self, x, config, output_size=None):
-        output_padding = self._output_padding(x, output_size, self.stride, self.padding, self.kernel_size)
+        num_spatial_dims = 2
+        output_padding = self._output_padding(x, output_size, self.stride, self.padding, self.kernel_size,
+                                              num_spatial_dims, self.dilation)  # fix for Pytorch 1.13
         in_nc = x.size(1)
         out_nc = config['channel']
         weight = self.weight[:in_nc, :out_nc]  # [ic, oc, H, W]
