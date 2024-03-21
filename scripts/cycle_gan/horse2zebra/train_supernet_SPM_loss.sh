@@ -15,6 +15,9 @@ python train_supernet.py --dataroot database/horse2zebra \
   --save_epoch_freq 20 \
   --metaA_path datasets/metas/horse2zebra/train1A.meta \
   --metaB_path datasets/metas/horse2zebra/train1B.meta \
-  --config_str 32_32_32_32_32_32_32_32
+  --config_str 32_32_32_32_32_32_32_32 \
+  --alpha_mac 0.5 \
+  --alpha_nuc 0.001 \
+  --target_ratio 0.5
   #  --config_set channels-32 \
 #  --restore_student_G_path logs/cycle_gan/horse2zebra/distill/checkpoints/latest_net_G.pth \
