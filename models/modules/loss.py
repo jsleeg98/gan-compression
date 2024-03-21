@@ -3,6 +3,7 @@ import torchvision
 from torch import nn as nn
 
 from utils import util
+from models.modules.resnet_architecture.super_mobile_resnet_generator import SuperMobileResnetBlock_with_SPM
 
 
 class GANLoss(nn.Module):
@@ -202,4 +203,39 @@ def append_loss_mac(cur_macs, target_macs, alpha_mac):
 
 
 def append_loss_nuc(model, alpha_nuc):
-    import pdb; pdb.set_trace()
+    li_conv_w = []
+    li_pm_w = []
+    for name, module in model.model.named_children():
+        if isinstance(module, SuperMobileResnetBlock_with_SPM):
+            # add pm weight
+            w = module.pm.weight.detach()
+            binary_w = (w > 0.5).float()
+            residual = w - binary_w
+            branch_out = module.pm.weight - residual
+            li_pm_w.append(branch_out)
+            # add spm weight
+            w = module.spm.weight.detach()
+            binary_w = (w > 0.5).float()
+            residual = w - binary_w
+            branch_out = module.spm.weight - residual
+            li_pm_w.append(branch_out)
+
+            li_conv_w.append(module.conv_block[1].conv[2].weight)  # add first SuperSeparableConv2d's pointwise conv weight
+            li_conv_w.append(module.conv_block[6].conv[2].weight)  # add second SuperSeparableConv2d's pointwise conv weight
+
+    li_pruned_conv = []
+    for conv, pm in zip(li_conv_w, li_pm_w):
+        li_pruned_conv.append(conv * pm)
+
+    origin_nuc_norm = torch.tensor([]).cuda()
+    pruned_nuc_norm = torch.tensor([]).cuda()
+    for origin, pruned in zip(li_conv_w, li_pruned_conv):
+        origin_nuc_norm = torch.cat(
+            (origin_nuc_norm, torch.unsqueeze(torch.norm(torch.flatten(origin, start_dim=1), p='nuc'), dim=0)), dim=0)
+        pruned_nuc_norm = torch.cat(
+            (pruned_nuc_norm, torch.unsqueeze(torch.norm(torch.flatten(pruned, start_dim=1), p='nuc'), dim=0)), dim=0)
+
+    criterion = nn.L1Loss()
+    nuc_loss = criterion(origin_nuc_norm, pruned_nuc_norm) * alpha_nuc
+
+    return nuc_loss

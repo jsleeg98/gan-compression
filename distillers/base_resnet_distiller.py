@@ -200,9 +200,11 @@ class BaseResnetDistiller(BaseModel):
         else:
             mac_loss = torch.tensor([0.]).cuda()
         if not self.opt.no_nuc_loss:
-            append_loss_nuc(self.netG_student, self.opt.alpha_nuc)
-            import pdb; pdb.set_trace()
-        self.loss_G = self.loss_G_gan + self.loss_G_recon + self.loss_G_distill
+            nuc_loss = append_loss_nuc(self.netG_student, self.opt.alpha_nuc)
+        else:
+            nuc_loss = torch.tensor([0.]).cuda()
+
+        self.loss_G = self.loss_G_gan + self.loss_G_recon + self.loss_G_distill + mac_loss + nuc_loss
         self.loss_G.backward()
 
     def optimize_parameters(self, steps):
