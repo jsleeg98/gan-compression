@@ -58,6 +58,7 @@ class SuperSeparableConv2d(nn.Module):
             nn.Conv2d(in_channels=in_channels * scale_factor, out_channels=out_channels,
                       kernel_size=1, stride=1, bias=use_bias),
         )
+        self.resolution = None
 
     def forward(self, x, config):
         in_nc = x.size(1)
@@ -72,7 +73,7 @@ class SuperSeparableConv2d(nn.Module):
         else:
             bias = None
         x = F.conv2d(x, weight, bias, conv.stride, conv.padding, conv.dilation, in_nc)
-
+        self.resolution = x.size(2)
         x = self.conv[1](x)
 
         conv = self.conv[2]
@@ -85,6 +86,12 @@ class SuperSeparableConv2d(nn.Module):
             bias = None
         x = F.conv2d(x, weight, bias, conv.stride, conv.padding, conv.dilation, conv.groups)
         return x
+
+    def get_macs(self, remain_in_nc, remain_out_nc):
+        assert self.resolution is not None
+        depthwise_conv_macs = self.conv[0].kernel_size[0] * self.conv[0].kernel_size[1] * remain_in_nc * self.resolution * self.resolution
+        pointwise_conv_macs = remain_in_nc * self.resolution * self.resolution * remain_out_nc
+        return depthwise_conv_macs + pointwise_conv_macs
 
 
 class SuperSynchronizedBatchNorm2d(SynchronizedBatchNorm2d):
