@@ -4,7 +4,7 @@ from torch import nn
 
 from models.modules.super_modules import SuperConvTranspose2d, SuperConv2d, SuperSeparableConv2d
 from models.networks import BaseNetwork
-
+import torch.nn.functional as F
 
 class SuperMobileResnetBlock(nn.Module):
     def __init__(self, dim, padding_type, norm_layer, dropout_rate, use_bias):
@@ -161,6 +161,26 @@ class SuperMobileResnetGenerator(BaseNetwork):
             else:
                 x = module(x)
         return x
+
+
+class BinaryConv2d(nn.Conv2d):
+    """docstring for QuanConv"""
+
+    def __init__(self, in_channels, out_channels, kernel_size=1, stride=1,
+                 padding=0, dilation=1, groups=1, bias=False):
+        super(BinaryConv2d, self).__init__(in_channels, out_channels, kernel_size, stride, padding, dilation,
+                                           groups, bias)
+        nn.init.constant_(self.weight, 0.6)
+
+    def forward(self, x):
+        # weight = self.weight
+        w = self.weight.detach()
+        binary_w = (w > 0.5).float()
+        residual = w - binary_w
+        weight = self.weight - residual
+
+        output = F.conv2d(x, weight, self.bias, self.stride, self.padding, self.dilation, self.groups)
+        return output
 
 
 class SuperMobileResnetGenerator_with_SPM(BaseNetwork):
