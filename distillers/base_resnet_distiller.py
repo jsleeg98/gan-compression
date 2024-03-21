@@ -15,7 +15,7 @@ from models.modules.loss import GANLoss
 from models.modules.super_modules import SuperConv2d
 from utils import util
 from argparse import ArgumentParser
-
+from models.modules.resnet_architecture.super_mobile_resnet_generator import BinaryConv2d
 
 class BaseResnetDistiller(BaseModel):
     @staticmethod
@@ -58,6 +58,10 @@ class BaseResnetDistiller(BaseModel):
                                               norm=opt.norm, dropout_rate=opt.student_dropout_rate,
                                               init_type=opt.init_type, init_gain=opt.init_gain,
                                               gpu_ids=self.gpu_ids, opt=opt)
+        # initialize PM, SPM weight to 0.6
+        for name, module in self.netG_student.model.named_modules():
+            if isinstance(module, BinaryConv2d):
+                nn.init.constant_(module.weight, 0.6)
         if hasattr(opt, 'distiller'):
             self.netG_pretrained = networks.define_G(opt.pretrained_netG, input_nc=opt.input_nc,
                                                      output_nc=opt.output_nc, ngf=opt.pretrained_ngf,
