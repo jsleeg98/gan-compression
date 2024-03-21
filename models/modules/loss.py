@@ -193,3 +193,13 @@ class VGGLoss(nn.Module):
         for i in range(len(x_vgg)):
             loss += self.weights[i] * self.criterion(x_vgg[i], y_vgg[i].detach())
         return loss
+
+
+def append_loss_mac(cur_macs, target_macs, alpha_mac):
+    criterion = nn.MSELoss()
+    loss = criterion(cur_macs, target_macs) * alpha_mac
+    return loss
+
+
+def append_loss_nuc(model, alpha_nuc):
+    import pdb; pdb.set_trace()

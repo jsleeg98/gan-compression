@@ -16,6 +16,7 @@ from models.modules.super_modules import SuperConv2d
 from utils import util
 from argparse import ArgumentParser
 from models.modules.resnet_architecture.super_mobile_resnet_generator import BinaryConv2d
+from models.modules.loss import append_loss_mac, append_loss_nuc
 
 class BaseResnetDistiller(BaseModel):
     @staticmethod
@@ -34,6 +35,11 @@ class BaseResnetDistiller(BaseModel):
                             help='weight for gan loss')
         parser.add_argument('--teacher_dropout_rate', type=float, default=0)
         parser.add_argument('--student_dropout_rate', type=float, default=0)
+        parser.add_argument('--no_mac_loss', action="store_true", help='turn off mac loss')
+        parser.add_argument('--target_ratio', type=float, default=0.5)
+        parser.add_argument('--alpha_mac', type=float, default=0.5)
+        parser.add_argument('--no_nuc_loss', action="store_true", help='turn off nuc loss')
+        parser.add_argument('--alpha_nuc', type=float, default=0.001)
         parser.set_defaults(teacher_netG='mobile_resnet_9blocks', teacher_ngf=64,
                             student_netG='mobile_resnet_9blocks', student_ngf=48)
         return parser
@@ -187,6 +193,15 @@ class BaseResnetDistiller(BaseModel):
             self.loss_G_distill = self.calc_distill_loss() * self.opt.lambda_distill
         else:
             self.loss_G_distill = 0
+        if not self.opt.no_mac_loss:
+            cur_macs = self.netG_student.get_macs()
+            target_macs = torch.tensor([1.2929]).cuda() * self.opt.target_ratio
+            mac_loss = append_loss_mac(cur_macs, target_macs, self.opt.alpha_mac)
+        else:
+            mac_loss = torch.tensor([0.]).cuda()
+        if not self.opt.no_nuc_loss:
+            append_loss_nuc(self.netG_student, self.opt.alpha_nuc)
+            import pdb; pdb.set_trace()
         self.loss_G = self.loss_G_gan + self.loss_G_recon + self.loss_G_distill
         self.loss_G.backward()
 
