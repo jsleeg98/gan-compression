@@ -5,6 +5,7 @@ from torch import nn
 from models.modules.super_modules import SuperConvTranspose2d, SuperConv2d, SuperSeparableConv2d
 from models.networks import BaseNetwork
 import torch.nn.functional as F
+import torch
 
 class SuperMobileResnetBlock(nn.Module):
     def __init__(self, dim, padding_type, norm_layer, dropout_rate, use_bias):
@@ -124,6 +125,25 @@ class SuperMobileResnetBlock_with_SPM(nn.Module):
         out = input + x
         out = self.spm(out)  # SPM
         return out
+
+    def get_macs(self, remain_in_nc):
+        # get first SuperSeperableConv2d macs
+        # get pm remain channels
+        w = self.pm.weight.detach()
+        binary_w = (w > 0.5).float()
+        residual = w - binary_w
+        branch_out = self.pm.weight - residual
+        remain_out_nc_pm = torch.sum(torch.squeeze(branch_out))
+        first_macs = self.conv_block[1].get_macs(remain_in_nc, remain_out_nc_pm)
+        # get second SuperSeprableConv2d macs
+        # get spm remain channels
+        w = self.spm.weight.detach()
+        binary_w = (w > 0.5).float()
+        residual = w - binary_w
+        branch_out = self.pm.weight - residual
+        remain_out_nc_spm = torch.sum(torch.squeeze(branch_out))
+        second_macs = self.conv_block[6].get_macs(remain_out_nc_pm, remain_out_nc_spm)
+        return first_macs + second_macs, remain_out_nc_spm
 
 
 class SuperMobileResnetGenerator(BaseNetwork):
@@ -346,3 +366,12 @@ class SuperMobileResnetGenerator_with_SPM(BaseNetwork):
             else:
                 x = module(x)
         return x
+
+    def get_macs(self):
+        total_macs = torch.tensor([0.0]).cuda()
+        remain_in_nc = torch.tensor([128]).cuda()
+        for name, module in self.model.named_children():
+            if isinstance(module, SuperMobileResnetBlock_with_SPM):
+                macs, remain_in_nc = module.get_macs(remain_in_nc)
+                total_macs += macs
+        return total_macs / 1e9
