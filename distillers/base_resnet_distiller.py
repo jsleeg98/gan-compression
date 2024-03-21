@@ -17,6 +17,7 @@ from utils import util
 from argparse import ArgumentParser
 from models.modules.resnet_architecture.super_mobile_resnet_generator import BinaryConv2d
 from models.modules.loss import append_loss_mac, append_loss_nuc
+import wandb
 
 class BaseResnetDistiller(BaseModel):
     @staticmethod
@@ -52,7 +53,7 @@ class BaseResnetDistiller(BaseModel):
                        'super_mobile_resnet_9blocks', 'sub_mobile_resnet_9blocks', 'super_mobile_resnet_9blocks_SPM']
         assert opt.teacher_netG in valid_netGs and opt.student_netG in valid_netGs
         super(BaseResnetDistiller, self).__init__(opt)
-        self.loss_names = ['G_gan', 'G_distill', 'G_recon', 'D_fake', 'D_real']
+        self.loss_names = ['G_gan', 'G_distill', 'G_recon', 'D_fake', 'D_real', 'netG_student_mac', 'netG_student_nuc']
         self.optimizers = []
         self.image_paths = []
         self.visual_names = ['real_A', 'Sfake_B', 'Tfake_B', 'real_B']
@@ -132,6 +133,13 @@ class BaseResnetDistiller(BaseModel):
         self.npz = np.load(opt.real_stat_path)
         self.is_best = False
 
+        wandb.init(project=opt.proj_name)
+        wandb.run.name = opt.log_dir.split('/')[-1]
+        wandb.run.save()
+        wandb.config.update(vars(opt))
+        print('wandb init')
+
+
     def setup(self, opt, verbose=True):
         super(BaseResnetDistiller, self).setup(opt, verbose)
         if self.opt.lambda_distill > 0:
@@ -198,15 +206,17 @@ class BaseResnetDistiller(BaseModel):
         if not self.opt.no_mac_loss:
             cur_macs = self.netG_student.get_macs()
             target_macs = torch.tensor([1.2929]).cuda() * self.opt.target_ratio
-            mac_loss = append_loss_mac(cur_macs, target_macs, self.opt.alpha_mac)
+            self.loss_netG_student_mac = mac_loss = append_loss_mac(cur_macs, target_macs, self.opt.alpha_mac)
+            wandb.log({'cur macs' : cur_macs})
+            wandb.log({'cur macs ratio' : cur_macs / 1.2929})
         else:
-            mac_loss = torch.tensor([0.]).cuda()
+            self.loss_netG_student_mac = torch.tensor([0.]).cuda()
         if not self.opt.no_nuc_loss:
-            nuc_loss = append_loss_nuc(self.netG_student, self.opt.alpha_nuc)
+            self.loss_netG_student_nuc = append_loss_nuc(self.netG_student, self.opt.alpha_nuc)
         else:
-            nuc_loss = torch.tensor([0.]).cuda()
+            self.loss_netG_student_nuc = torch.tensor([0.]).cuda()
 
-        self.loss_G = self.loss_G_gan + self.loss_G_recon + self.loss_G_distill + mac_loss + nuc_loss
+        self.loss_G = self.loss_G_gan + self.loss_G_recon + self.loss_G_distill + self.loss_netG_student_mac + self.loss_netG_student_nuc
         self.loss_G.backward()
 
     def optimize_parameters(self, steps):

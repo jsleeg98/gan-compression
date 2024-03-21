@@ -12,6 +12,7 @@ from tqdm import tqdm, trange
 from data import create_dataloader
 from utils.logger import Logger
 from models.modules.resnet_architecture.super_mobile_resnet_generator import SuperMobileResnetBlock_with_SPM
+import wandb
 
 
 def set_seed(seed):
@@ -62,6 +63,7 @@ class Trainer:
     def evaluate(self, epoch, iter, message):
         start_time = time.time()
         metrics = self.model.evaluate_model(iter)
+        wandb.log(metrics)
         self.logger.print_current_metrics(epoch, iter, metrics, time.time() - start_time)
         self.logger.plot(metrics, iter)
         self.logger.print_info(message)
@@ -85,6 +87,7 @@ class Trainer:
                 total_iter += 1
                 model.set_input(data_i)
                 model.optimize_parameters(total_iter)
+                wandb.log(model.get_current_losses())
 
                 if total_iter % opt.print_freq == 0:
                     losses = model.get_current_losses()
