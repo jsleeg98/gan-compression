@@ -141,7 +141,7 @@ def init_net(net, init_type='normal', init_gain=0.02, gpu_ids=[]):
 
 def define_G(netG, **kwargs):
     Generator = get_netG_cls(netG)
-    if netG in ['resnet_9blocks', 'mobile_resnet_9blocks', 'super_mobile_resnet_9blocks']:
+    if netG in ['resnet_9blocks', 'mobile_resnet_9blocks', 'super_mobile_resnet_9blocks', 'super_mobile_resnet_9blocks_SPM']:
         assert 'input_nc' in kwargs and 'output_nc' in kwargs and 'ngf' in kwargs
         input_nc = kwargs.get('input_nc')
         output_nc = kwargs.get('output_nc')
@@ -225,6 +225,9 @@ def get_netG_cls(netG):
     elif netG == 'super_mobile_resnet_9blocks':
         from models.modules.resnet_architecture.super_mobile_resnet_generator import SuperMobileResnetGenerator
         return SuperMobileResnetGenerator
+    elif netG == 'super_mobile_resnet_9blocks_SPM':
+        from models.modules.resnet_architecture.super_mobile_resnet_generator import SuperMobileResnetGenerator_with_SPM
+        return SuperMobileResnetGenerator_with_SPM
     elif netG == 'sub_mobile_resnet_9blocks':
         from models.modules.resnet_architecture.sub_mobile_resnet_generator import SubMobileResnetGenerator
         return SubMobileResnetGenerator
