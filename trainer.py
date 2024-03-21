@@ -11,6 +11,7 @@ from tqdm import tqdm, trange
 
 from data import create_dataloader
 from utils.logger import Logger
+from models.modules.resnet_architecture.super_mobile_resnet_generator import SuperMobileResnetBlock_with_SPM
 
 
 def set_seed(seed):
@@ -109,3 +110,12 @@ class Trainer:
                 model.save_networks(epoch)
             if opt.scheduler_counter == 'epoch':
                 model.update_learning_rate(epoch, total_iter, logger=logger)
+            if opt.R_max <= epoch:
+                opt.no_mac_loss = True
+                opt.no_nuc_loss = True
+                model.netG_student.spm1.weight.requires_grad = False
+                model.netG_student.spm2.weight.requires_grad = False
+                model.netG_student.spm3.weight.requires_grad = False
+                for name, module in model.netG_student.model.named_children():
+                    if isinstance(module, SuperMobileResnetBlock_with_SPM):
+                        module.pm.weight.requires_grad = False

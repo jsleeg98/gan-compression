@@ -40,6 +40,8 @@ class BaseResnetDistiller(BaseModel):
         parser.add_argument('--alpha_mac', type=float, default=0.5)
         parser.add_argument('--no_nuc_loss', action="store_true", help='turn off nuc loss')
         parser.add_argument('--alpha_nuc', type=float, default=0.001)
+        parser.add_argument('--R_max', type=int, default=400)
+        parser.add_argument('--proj_name', type=str, default='test')
         parser.set_defaults(teacher_netG='mobile_resnet_9blocks', teacher_ngf=64,
                             student_netG='mobile_resnet_9blocks', student_ngf=48)
         return parser
