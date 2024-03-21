@@ -150,7 +150,8 @@ def load_network(net, load_path, verbose=True):
             print("Unexpected keys in state_dict")
             for key in unexpected_keys:
                 print(key)
-    net.load_state_dict(weights)
+    else:
+        net.load_state_dict(weights)
     return net
 
 
