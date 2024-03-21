@@ -161,3 +161,102 @@ class SuperMobileResnetGenerator(BaseNetwork):
             else:
                 x = module(x)
         return x
+
+
+class SuperMobileResnetGenerator_with_SPM(BaseNetwork):
+    def __init__(self, input_nc, output_nc, ngf, norm_layer=nn.BatchNorm2d, dropout_rate=0, n_blocks=6,
+                 padding_type='reflect'):
+        assert n_blocks >= 0
+        super(SuperMobileResnetGenerator_with_SPM, self).__init__()
+        if type(norm_layer) == functools.partial:
+            use_bias = norm_layer.func == nn.InstanceNorm2d
+        else:
+            use_bias = norm_layer == nn.InstanceNorm2d
+
+        model = [nn.ReflectionPad2d(3),
+                 SuperConv2d(input_nc, ngf, kernel_size=7, padding=0, bias=use_bias),
+                 norm_layer(ngf),
+                 nn.ReLU(True)]
+
+        n_downsampling = 2
+        for i in range(n_downsampling):  # add downsampling layers
+            mult = 2 ** i
+            model += [SuperConv2d(ngf * mult, ngf * mult * 2, kernel_size=3, stride=2, padding=1, bias=use_bias),
+                      norm_layer(ngf * mult * 2),
+                      nn.ReLU(True)]
+
+        mult = 2 ** n_downsampling
+
+        n_blocks1 = n_blocks // 3
+        n_blocks2 = n_blocks1
+        n_blocks3 = n_blocks - n_blocks1 - n_blocks2
+
+        for i in range(n_blocks1):
+            model += [SuperMobileResnetBlock(ngf * mult, padding_type=padding_type, norm_layer=norm_layer,
+                                             dropout_rate=dropout_rate,
+                                             use_bias=use_bias)]
+
+        for i in range(n_blocks2):
+            model += [SuperMobileResnetBlock(ngf * mult, padding_type=padding_type, norm_layer=norm_layer,
+                                             dropout_rate=dropout_rate,
+                                             use_bias=use_bias)]
+
+        for i in range(n_blocks3):
+            model += [SuperMobileResnetBlock(ngf * mult, padding_type=padding_type, norm_layer=norm_layer,
+                                             dropout_rate=dropout_rate,
+                                             use_bias=use_bias)]
+
+        for i in range(n_downsampling):  # add upsampling layers
+            mult = 2 ** (n_downsampling - i)
+            model += [SuperConvTranspose2d(ngf * mult, int(ngf * mult / 2),
+                                           kernel_size=3, stride=2,
+                                           padding=1, output_padding=1,
+                                           bias=use_bias),
+                      norm_layer(int(ngf * mult / 2)),
+                      nn.ReLU(True)]
+        model += [nn.ReflectionPad2d(3)]
+        model += [SuperConv2d(ngf, output_nc, kernel_size=7, padding=0)]
+        model += [nn.Tanh()]
+        self.model = nn.Sequential(*model)
+
+    def forward(self, input):
+        """Standard forward"""
+        configs = self.configs
+        input = input.clamp(-1, 1)
+        x = input
+        cnt = 0
+        for i in range(0, 10):
+            module = self.model[i]
+            if isinstance(module, SuperConv2d):
+                channel = configs['channels'][cnt] * (2 ** cnt)
+                config = {'channel': channel}
+                x = module(x, config)
+                cnt += 1
+            else:
+                x = module(x)
+        for i in range(3):
+            for j in range(10 + i * 3, 13 + i * 3):
+                if len(configs['channels']) == 6:
+                    channel = configs['channels'][3] * 4
+                else:
+                    channel = configs['channels'][i + 3] * 4
+                config = {'channel': channel}
+                module = self.model[j]
+                x = module(x, config)
+        cnt = 2
+        for i in range(19, 28):
+            module = self.model[i]
+            if isinstance(module, SuperConvTranspose2d):
+                cnt -= 1
+                if len(configs['channels']) == 6:
+                    channel = configs['channels'][5 - cnt] * (2 ** cnt)
+                else:
+                    channel = configs['channels'][7 - cnt] * (2 ** cnt)
+                config = {'channel': channel}
+                x = module(x, config)
+            elif isinstance(module, SuperConv2d):
+                config = {'channel': module.out_channels}
+                x = module(x, config)
+            else:
+                x = module(x)
+        return x
