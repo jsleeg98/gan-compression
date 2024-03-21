@@ -11,6 +11,7 @@ import numpy as np
 import torch
 from PIL import Image
 from torch import nn
+from models.modules.resnet_architecture.super_mobile_resnet_generator import SuperMobileResnetGenerator_with_SPM
 
 
 def atoi(text):
@@ -139,6 +140,16 @@ def load_network(net, load_path, verbose=True):
     weights = torch.load(load_path)
     if isinstance(net, nn.DataParallel):
         net = net.module
+    if isinstance(net, SuperMobileResnetGenerator_with_SPM):
+        missing_keys, unexpected_keys = net.load_state_dict(weights, strict=False)
+        if missing_keys:
+            print("Missing keys in state_dict")
+            for key in missing_keys:
+                print(key)
+        if unexpected_keys:
+            print("Unexpected keys in state_dict")
+            for key in unexpected_keys:
+                print(key)
     net.load_state_dict(weights)
     return net
 
