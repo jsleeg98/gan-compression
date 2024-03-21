@@ -68,7 +68,8 @@ class SuperMobileResnetBlock_with_SPM(nn.Module):
     def __init__(self, dim, padding_type, norm_layer, dropout_rate, use_bias, SPM):
         super(SuperMobileResnetBlock, self).__init__()
         self.conv_block = self.build_conv_block(dim, padding_type, norm_layer, dropout_rate, use_bias)
-        self.spm = SPM
+        self.spm = SPM  # SPM
+        self.pm = BinaryConv2d(in_channels=dim, out_channels=dim, groups=dim)  # PM
     def build_conv_block(self, dim, padding_type, norm_layer, dropout_rate, use_bias):
         conv_block = []
         p = 0
@@ -87,7 +88,6 @@ class SuperMobileResnetBlock_with_SPM(nn.Module):
             norm_layer(dim),
             nn.ReLU(True)
         ]
-        conv_block += [BinaryConv2d(in_channels=dim, out_channels=dim, groups=dim)]
         conv_block += [nn.Dropout(dropout_rate)]
 
         p = 0
@@ -119,6 +119,8 @@ class SuperMobileResnetBlock_with_SPM(nn.Module):
                 cnt += 1
             else:
                 x = module(x)
+                if isinstance(module, nn.ReLU):  # pm after ReLU
+                    x = self.pm(x)
         out = input + x
         out = self.spm(out)
         return out
