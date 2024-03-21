@@ -196,14 +196,16 @@ class SuperMobileResnetGenerator_with_SPM(BaseNetwork):
         model = [nn.ReflectionPad2d(3),
                  SuperConv2d(input_nc, ngf, kernel_size=7, padding=0, bias=use_bias),
                  norm_layer(ngf),
-                 nn.ReLU(True)]
+                 nn.ReLU(True),
+                 BinaryConv2d(in_channels=ngf, out_channels=ngf, groups=ngf)]
 
         n_downsampling = 2
         for i in range(n_downsampling):  # add downsampling layers
             mult = 2 ** i
             model += [SuperConv2d(ngf * mult, ngf * mult * 2, kernel_size=3, stride=2, padding=1, bias=use_bias),
                       norm_layer(ngf * mult * 2),
-                      nn.ReLU(True)]
+                      nn.ReLU(True),
+                      BinaryConv2d(in_channels=ngf * mult * 2, out_channels=ngf * mult * 2, groups=ngf * mult * 2)]
 
         mult = 2 ** n_downsampling
 
