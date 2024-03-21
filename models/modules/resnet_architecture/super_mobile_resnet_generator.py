@@ -122,7 +122,7 @@ class SuperMobileResnetBlock_with_SPM(nn.Module):
                 if isinstance(module, nn.ReLU):  # pm after ReLU
                     x = self.pm(x)
         out = input + x
-        out = self.spm(out)
+        out = self.spm(out)  # SPM
         return out
 
 
