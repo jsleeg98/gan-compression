@@ -111,6 +111,11 @@ class Trainer:
                 if opt.scheduler_counter == 'iter':
                     model.update_learning_rate(epoch, total_iter, logger=logger)
 
+                if total_iter % 100 == 0:
+                    # CUDA memory manage
+                    torch.cuda.empty_cache()
+                    gc.collect()
+
                 if total_iter >= opt.niters:
                     break
             logger.print_info(
