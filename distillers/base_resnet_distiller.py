@@ -43,6 +43,7 @@ class BaseResnetDistiller(BaseModel):
         parser.add_argument('--alpha_nuc', type=float, default=0.001)
         parser.add_argument('--R_max', type=int, default=400)
         parser.add_argument('--proj_name', type=str, default='test')
+        parser.add_argument('--log_name', type=str, default='test')
         parser.add_argument("--bi_level_train", action="store_true", help="turn on bi level train")
         parser.add_argument("--bi_level_interval", default="1", type=int, help="pruning frequency")
         parser.add_argument("--bi_level_start_epoch", default="10", type=int, help="train original model until bi_level_start_epoch")
@@ -141,13 +142,8 @@ class BaseResnetDistiller(BaseModel):
         if opt.no_nuc_loss:
             opt.alpha_nuc = 0
 
-        if opt.bi_level_train:
-            wandb_log_name = f'{opt.log_dir.split("/")[-1]}_mac_{opt.alpha_mac}_nuc_{opt.alpha_nuc}_biStart_{opt.bi_level_start_epoch}_biInterval_{opt.bi_level_interval}_Rmax_{opt.R_max}'
-        else:
-            wandb_log_name = f'{opt.log_dir.split("/")[-1]}_mac_{opt.alpha_mac}_nuc_{opt.alpha_nuc}_Rmax_{opt.R_max}'
-
         wandb.init(project=opt.proj_name)
-        wandb.run.name = wandb_log_name
+        wandb.run.name = opt.log_dir.split('/')[-1]
         wandb.run.save()
         wandb.config.update(vars(opt))
         print('wandb init')
