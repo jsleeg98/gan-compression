@@ -11,7 +11,7 @@ from tqdm import tqdm, trange
 
 from data import create_dataloader
 from utils.logger import Logger
-from models.modules.resnet_architecture.super_mobile_resnet_generator import SuperMobileResnetBlock_with_SPM, BinaryConv2d
+from models.modules.resnet_architecture.super_mobile_resnet_generator import SuperMobileResnetBlock_with_SPM_bi, BinaryConv2d
 import wandb
 import matplotlib.pyplot as plt
 import torch.nn as nn
@@ -88,6 +88,77 @@ class Trainer:
         self.logger.set_progress_bar(epoch_tqdm)
         for epoch in epoch_tqdm:
             epoch_start_time = time.time()  # timer for entire epoch
+
+            # bi-level setting
+            if opt.bi_level_train:
+                if epoch < opt.bi_level_start_epoch:
+                    opt.no_mac_loss = True
+                    opt.no_nuc_loss = True
+                    for name, module in model.netG_student.model.named_children():
+                        if isinstance(module, SuperMobileResnetBlock_with_SPM_bi):
+                            module.mode = 'original'
+                            module.pm.weight.requires_grad = False
+                            module.spm.weight.requires_grad = False
+                            print(name)
+                    model.netG_student.spm1.weight.requires_grad = False
+                    model.netG_student.spm2.weight.requires_grad = False
+                    model.netG_student.spm3.weight.requires_grad = False
+                    print('original mode'.center(100, '-'))
+                elif opt.bi_level_start_epoch <= epoch <= opt.R_max:  # bi-level optimization
+                    if epoch % opt.bi_level_interval == 0:
+                        opt.no_mac_loss = False
+                        opt.no_nuc_loss = False
+                        for name, module in model.netG_student.model.named_children():
+                            if isinstance(module, SuperMobileResnetBlock_with_SPM_bi):
+                                module.mode = 'prune'
+                                module.pm.weight.requires_grad = True
+                                module.spm.weight.requires_grad = True
+                                print(name)
+                        model.netG_student.spm1.weight.requires_grad = True
+                        model.netG_student.spm2.weight.requires_grad = True
+                        model.netG_student.spm3.weight.requires_grad = True
+                        print('prune mode'.center(100, '-'))
+                    else:
+                        opt.no_mac_loss = True
+                        opt.no_nuc_loss = True
+                        for name, module in model.netG_student.model.named_children():
+                            if isinstance(module, SuperMobileResnetBlock_with_SPM_bi):
+                                module.mode = 'original'
+                                module.pm.weight.requires_grad = False
+                                module.spm.weight.requires_grad = False
+                                print(name)
+                        model.netG_student.spm1.weight.requires_grad = False
+                        model.netG_student.spm2.weight.requires_grad = False
+                        model.netG_student.spm3.weight.requires_grad = False
+                        print('original mode'.center(100, '-'))
+                elif opt.R_max < epoch:
+                    opt.no_mac_loss = True
+                    opt.no_nuc_loss = True
+                    for name, module in model.netG_student.model.named_children():
+                        if isinstance(module, SuperMobileResnetBlock_with_SPM_bi):
+                            module.mode = 'original'
+                            module.pm.weight.requires_grad = False
+                            module.spm.weight.requires_grad = False
+                            print(name)
+                    model.netG_student.spm1.weight.requires_grad = False
+                    model.netG_student.spm2.weight.requires_grad = False
+                    model.netG_student.spm3.weight.requires_grad = False
+                    print('original mode'.center(100, '-'))
+            else:
+                if opt.R_max < epoch:
+                    opt.no_mac_loss = True
+                    opt.no_nuc_loss = True
+                    for name, module in model.netG_student.model.named_children():
+                        if isinstance(module, SuperMobileResnetBlock_with_SPM_bi):
+                            module.mode = 'original'
+                            module.pm.weight.requires_grad = False
+                            module.spm.weight.requires_grad = False
+                            print(name)
+                    model.netG_student.spm1.weight.requires_grad = False
+                    model.netG_student.spm2.weight.requires_grad = False
+                    model.netG_student.spm3.weight.requires_grad = False
+                    print('original mode'.center(100, '-'))
+
             for i, data_i in enumerate(tqdm(dataloader, desc='Batch      ', position=1, leave=False)):
                 iter_start_time = time.time()
                 total_iter += 1
@@ -126,15 +197,6 @@ class Trainer:
                 model.save_networks(epoch)
             if opt.scheduler_counter == 'epoch':
                 model.update_learning_rate(epoch, total_iter, logger=logger)
-            if opt.R_max <= epoch:
-                opt.no_mac_loss = True
-                opt.no_nuc_loss = True
-                model.netG_student.spm1.weight.requires_grad = False
-                model.netG_student.spm2.weight.requires_grad = False
-                model.netG_student.spm3.weight.requires_grad = False
-                for name, module in model.netG_student.model.named_children():
-                    if isinstance(module, SuperMobileResnetBlock_with_SPM):
-                        module.pm.weight.requires_grad = False
 
 
 
