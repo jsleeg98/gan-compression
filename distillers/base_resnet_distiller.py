@@ -133,8 +133,14 @@ class BaseResnetDistiller(BaseModel):
         self.npz = np.load(opt.real_stat_path)
         self.is_best = False
 
+        if opt.no_mac_loss:
+            opt.alpha_mac = 0
+        if opt.no_nuc_loss:
+            opt.alpha_nuc = 0
+        wandb_log_name = f'{opt.log_dir.split("/")[-1]}_mac_{opt.alpha_mac}_nuc_{opt.alpha_nuc}_Rmax_{opt.R_max}'
+
         wandb.init(project=opt.proj_name)
-        wandb.run.name = opt.log_dir.split('/')[-1]
+        wandb.run.name = wandb_log_name
         wandb.run.save()
         wandb.config.update(vars(opt))
         print('wandb init')
