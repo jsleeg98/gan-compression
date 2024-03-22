@@ -205,6 +205,21 @@ def append_loss_mac(cur_macs, target_macs, alpha_mac):
 def append_loss_nuc(model, alpha_nuc):
     li_conv_w = []
     li_pm_w = []
+
+    # downsampling layers
+    w = model.pm.weight.detach()
+    binary_w = (w > 0.5).float()
+    residual = w - binary_w
+    branch_out = model.pm.weight - residual
+    li_pm_w.append(branch_out)
+    li_conv_w.append(model.model[4].weight)
+    w = model.spm.weight.detach()
+    binary_w = (w > 0.5).float()
+    residual = w - binary_w
+    branch_out = model.spm.weight - residual
+    li_pm_w.append(branch_out)
+    li_conv_w.append(model.model[7].weight)
+
     for name, module in model.model.named_children():
         if isinstance(module, SuperMobileResnetBlock_with_SPM):
             # add pm weight
