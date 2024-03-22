@@ -217,11 +217,14 @@ class BaseResnetDistiller(BaseModel):
             self.loss_G_distill = 0
         if not self.opt.no_mac_loss:
             cur_macs = self.netG_student.get_macs()
-            target_macs = torch.tensor([1.2929]).cuda() * self.opt.target_ratio
-            self.loss_netG_student_mac = mac_loss = append_loss_mac(cur_macs, target_macs, self.opt.alpha_mac)
+            target_macs = torch.tensor([1.8430]).cuda() * self.opt.target_ratio
+            self.loss_netG_student_mac = append_loss_mac(cur_macs, target_macs, self.opt.alpha_mac)
             wandb.log({'cur macs' : cur_macs})
-            wandb.log({'cur macs ratio' : cur_macs / 1.2929})
+            wandb.log({'cur macs ratio' : cur_macs / 1.8430})
         else:
+            cur_macs = self.netG_student.get_macs()
+            wandb.log({'cur macs': cur_macs})
+            wandb.log({'cur macs ratio': cur_macs / 1.8430})
             self.loss_netG_student_mac = torch.tensor([0.]).cuda()
         if not self.opt.no_nuc_loss:
             self.loss_netG_student_nuc = append_loss_nuc(self.netG_student, self.opt.alpha_nuc)

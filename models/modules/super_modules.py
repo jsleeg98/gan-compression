@@ -11,6 +11,7 @@ class SuperConv2d(nn.Conv2d):
                  padding=0, dilation=1, groups=1, bias=True, padding_mode='zeros'):
         super(SuperConv2d, self).__init__(in_channels, out_channels, kernel_size,
                                           stride, padding, dilation, groups, bias, padding_mode)
+        self.resolution = None
 
     def forward(self, x, config):
         in_nc = x.size(1)
@@ -20,8 +21,14 @@ class SuperConv2d(nn.Conv2d):
             bias = self.bias[:out_nc]
         else:
             bias = None
-        return F.conv2d(x, weight, bias, self.stride, self.padding, self.dilation, self.groups)
+        out = F.conv2d(x, weight, bias, self.stride, self.padding, self.dilation, self.groups)
+        self.resolution = out.shape[2]
+        return out
 
+    def get_macs(self, remain_in_nc, remain_out_nc):
+        assert self.resolution is not None
+        conv_macs = self.kernel_size[0] * self.kernel_size[1] * remain_in_nc * self.resolution * self.resolution * remain_out_nc
+        return conv_macs
 
 class SuperConvTranspose2d(nn.ConvTranspose2d):
     def __init__(self, in_channels, out_channels, kernel_size, stride=1,
