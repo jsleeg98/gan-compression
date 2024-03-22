@@ -3,7 +3,7 @@ import torchvision
 from torch import nn as nn
 
 from utils import util
-from models.modules.resnet_architecture.super_mobile_resnet_generator import SuperMobileResnetBlock_with_SPM
+from models.modules.resnet_architecture.super_mobile_resnet_generator import SuperMobileResnetBlock_with_SPM_bi
 
 
 class GANLoss(nn.Module):
@@ -221,7 +221,7 @@ def append_loss_nuc(model, alpha_nuc):
     li_conv_w.append(model.model[7].weight)
 
     for name, module in model.model.named_children():
-        if isinstance(module, SuperMobileResnetBlock_with_SPM):
+        if isinstance(module, SuperMobileResnetBlock_with_SPM_bi):
             # add pm weight
             w = module.pm.weight.detach()
             binary_w = (w > 0.5).float()
