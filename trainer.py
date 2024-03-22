@@ -164,7 +164,7 @@ class Trainer:
                     losses = model.get_current_losses()
                     logger.print_current_errors(epoch, total_iter, losses, time.time() - iter_start_time)
                     logger.plot(losses, total_iter)
-                    fig = visualize_pruned_model(model.netG_student.model, total_iter)
+                    fig = visualize_pruned_model(model.netG_student, total_iter)
                     wandb.log({'pruned structure': wandb.Image(fig)})
 
                 if total_iter % opt.save_latest_freq == 0:
@@ -197,14 +197,26 @@ class Trainer:
 def visualize_pruned_model(model, iter):
     dic_model = {'name': [], 'total': [], 'remain': []}
 
-    for name, module in model.named_modules():
+    for name, module in model.model.named_modules():
         if isinstance(module, nn.Conv2d):
             if not 'pm' in name and not 'spm' in name:  # only original conv
-                if hasattr(model[int(name.split('.')[0])], 'pm') and hasattr(model[int(name.split('.')[0])], 'spm'):  # SuperMobileResnetBlock
-                    w = model[int(name.split('.')[0])].pm.weight.detach()
+                if name == '4':
+                    w = model.pm.weight.detach()
                     binary_w = (w > 0.5).float()
                     pm = int(torch.sum(torch.where(binary_w == 1, 1, 0)))
-                    w = model[int(name.split('.')[0])].spm.weight.detach()
+                    dic_model['total'].append(int(module.weight.shape[0]))
+                    dic_model['remain'].append(pm)
+                elif name == '7':
+                    w = model.spm.weight.detach()
+                    binary_w = (w > 0.5).float()
+                    spm = int(torch.sum(torch.where(binary_w == 1, 1, 0)))
+                    dic_model['total'].append(int(module.weight.shape[0]))
+                    dic_model['remain'].append(spm)
+                elif hasattr(model.model[int(name.split('.')[0])], 'pm') and hasattr(model.model[int(name.split('.')[0])], 'spm'):  # SuperMobileResnetBlock
+                    w = model.model[int(name.split('.')[0])].pm.weight.detach()
+                    binary_w = (w > 0.5).float()
+                    pm = int(torch.sum(torch.where(binary_w == 1, 1, 0)))
+                    w = model.model[int(name.split('.')[0])].spm.weight.detach()
                     binary_w = (w > 0.5).float()
                     spm = int(torch.sum(torch.where(binary_w == 1, 1, 0)))
                     if '1.conv.2' in name:
@@ -216,12 +228,10 @@ def visualize_pruned_model(model, iter):
                     else:
                         dic_model['total'].append(int(module.weight.shape[0]))
                         dic_model['remain'].append(int(module.weight.shape[0]))
-                    dic_model['name'].append(name)
                 else:
-                    dic_model['name'].append(name)
                     dic_model['total'].append(int(module.weight.shape[0]))
                     dic_model['remain'].append(int(module.weight.shape[0]))
-
+                dic_model['name'].append(name)
     idx = np.arange(len(dic_model['name']))
     bar_width = 0.7
     fig = plt.figure(figsize=(16, 10))
