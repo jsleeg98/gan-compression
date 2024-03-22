@@ -40,9 +40,9 @@ class BaseModel(ABC):
             else torch.device('cpu')  # get device name: CPU or GPU
         if opt.isTrain:
             if opt.bi_level_train:
-                wandb_log_name = f'{opt.log_name}_mac_{opt.alpha_mac}_nuc_{opt.alpha_nuc}_biStart_{opt.bi_level_start_epoch}_biInterval_{opt.bi_level_interval}_Rmax_{opt.R_max}'
+                wandb_log_name = f'{opt.log_name}_tr_{opt.target_ratio}_mac_{opt.alpha_mac}_nuc_{opt.alpha_nuc}_biStart_{opt.bi_level_start_epoch}_biInterval_{opt.bi_level_interval}_Rmax_{opt.R_max}'
             else:
-                wandb_log_name = f'{opt.log_name}_mac_{opt.alpha_mac}_nuc_{opt.alpha_nuc}_Rmax_{opt.R_max}'
+                wandb_log_name = f'{opt.log_name}_tr_{opt.target_ratio}_mac_{opt.alpha_mac}_nuc_{opt.alpha_nuc}_Rmax_{opt.R_max}'
             opt.log_dir += f'{opt.proj_name}/{wandb_log_name}'
             self.save_dir = os.path.join(opt.log_dir, 'checkpoints')  # save all the checkpoints to save_dir
             os.makedirs(self.save_dir, exist_ok=True)
