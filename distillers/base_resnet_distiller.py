@@ -75,7 +75,8 @@ class BaseResnetDistiller(BaseModel):
         for name, module in self.netG_student.model.named_modules():
             if isinstance(module, BinaryConv2d):
                 nn.init.constant_(module.weight, 0.6)
-        nn.init.constant_(self.netG_student.pm.weight, 0.6)
+        nn.init.constant_(self.netG_student.pm1.weight, 0.6)
+        nn.init.constant_(self.netG_student.pm2.weight, 0.6)
         nn.init.constant_(self.netG_student.spm.weight, 0.6)
 
         if hasattr(opt, 'distiller'):
@@ -217,10 +218,10 @@ class BaseResnetDistiller(BaseModel):
             self.loss_G_distill = 0
         if not self.opt.no_mac_loss:
             cur_macs = self.netG_student.get_macs()
-            target_macs = torch.tensor([1.8430]).cuda() * self.opt.target_ratio
+            target_macs = torch.tensor([2.2052]).cuda() * (1 - self.opt.target_ratio)
             self.loss_netG_student_mac = append_loss_mac(cur_macs, target_macs, self.opt.alpha_mac)
             wandb.log({'cur macs' : cur_macs})
-            wandb.log({'cur macs ratio' : cur_macs / 1.8430})
+            wandb.log({'cur macs ratio' : cur_macs / 2.2052})
         else:
             cur_macs = self.netG_student.get_macs()
             wandb.log({'cur macs': cur_macs})

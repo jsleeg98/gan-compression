@@ -314,7 +314,8 @@ class SuperMobileResnetGenerator_with_SPM_bi(BaseNetwork):
         n_blocks2 = n_blocks1
         n_blocks3 = n_blocks - n_blocks1 - n_blocks2
 
-        self.pm = BinaryConv2d(in_channels=ngf * mult // 2, out_channels=ngf * mult // 2, groups=ngf * mult // 2)
+        self.pm1 = BinaryConv2d(in_channels=ngf * mult // 4, out_channels=ngf * mult // 4, groups=ngf * mult // 4)
+        self.pm2 = BinaryConv2d(in_channels=ngf * mult // 2, out_channels=ngf * mult // 2, groups=ngf * mult // 2)
         self.spm = BinaryConv2d(in_channels=ngf * mult, out_channels=ngf * mult, groups=ngf * mult)
         self.mode = 'prune'  # bi-level
         self.profile_SPM = False  # SPM profile
@@ -363,9 +364,12 @@ class SuperMobileResnetGenerator_with_SPM_bi(BaseNetwork):
                     cnt += 1
                 else:
                     x = module(x)
-                    if cnt == 2 and isinstance(module, nn.ReLU):
+                    if cnt == 1 and isinstance(module, nn.ReLU):
                         if self.mode == 'prune':
-                            x = self.pm(x)
+                            x = self.pm1(x)
+                    elif cnt == 2 and isinstance(module, nn.ReLU):
+                        if self.mode == 'prune':
+                            x = self.pm2(x)
                     elif cnt == 3 and isinstance(module, nn.ReLU):
                         if self.mode == 'prune':
                             x = self.spm(x)
@@ -402,8 +406,12 @@ class SuperMobileResnetGenerator_with_SPM_bi(BaseNetwork):
             for i in range(0, 10):
                 module = self.model[i]
                 if isinstance(module, SuperConv2d):
-                    if cnt == 1:
-                        config = {'channel': torch.sum(torch.where(self.pm.weight > 0.5, 1, 0))}
+                    if cnt == 0:
+                        config = {'channel': torch.sum(torch.where(self.pm1.weight > 0.5, 1, 0))}
+                        x = module(x, config)
+                        cnt += 1
+                    elif cnt == 1:
+                        config = {'channel': torch.sum(torch.where(self.pm2.weight > 0.5, 1, 0))}
                         x = module(x, config)
                         cnt += 1
                     elif cnt == 2:
@@ -417,9 +425,12 @@ class SuperMobileResnetGenerator_with_SPM_bi(BaseNetwork):
                         cnt += 1
                 else:
                     x = module(x)
-                    if cnt == 2 and isinstance(module, nn.ReLU):
+                    if cnt == 1 and isinstance(module, nn.ReLU):
                         if self.mode == 'prune':
-                            x = self.pm(x)
+                            x = self.pm1(x)
+                    elif cnt == 2 and isinstance(module, nn.ReLU):
+                        if self.mode == 'prune':
+                            x = self.pm2(x)
                     elif cnt == 3 and isinstance(module, nn.ReLU):
                         if self.mode == 'prune':
                             x = self.spm(x)
@@ -453,19 +464,29 @@ class SuperMobileResnetGenerator_with_SPM_bi(BaseNetwork):
     def get_macs(self):
         cnt = 0
         total_macs = torch.tensor([0.]).cuda()
-        remain_in_nc = torch.tensor([32]).cuda()
+        remain_in_nc = torch.tensor([3]).cuda()
         for name, module in self.model.named_children():
             if isinstance(module, SuperMobileResnetBlock_with_SPM_bi):
                 macs, remain_in_nc = module.get_macs(remain_in_nc)
                 total_macs += macs
+            elif isinstance(module, SuperConv2d) and module.kernel_size[0] == 7 and name == '1':
+                w = self.pm1.weight.detach()
+                binary_w = (w > 0.5).float()
+                residual = w - binary_w
+                branch_out = self.pm1.weight - residual
+                remain_out_nc_pm = torch.sum(torch.squeeze(branch_out))
+                macs = module.get_macs(remain_in_nc, remain_out_nc_pm)
+                remain_in_nc = remain_out_nc_pm
+                total_macs += macs
             elif isinstance(module, SuperConv2d) and module.kernel_size[0] == 3:
                 if cnt == 0:
-                    w = self.pm.weight.detach()
+                    w = self.pm2.weight.detach()
                     binary_w = (w > 0.5).float()
                     residual = w - binary_w
-                    branch_out = self.pm.weight - residual
+                    branch_out = self.pm2.weight - residual
                     remain_out_nc_pm = torch.sum(torch.squeeze(branch_out))
                     macs = module.get_macs(remain_in_nc, remain_out_nc_pm)
+                    remain_in_nc = remain_out_nc_pm
                     total_macs += macs
                     cnt += 1
                 elif cnt == 1:
@@ -474,7 +495,8 @@ class SuperMobileResnetGenerator_with_SPM_bi(BaseNetwork):
                     residual = w - binary_w
                     branch_out = self.spm.weight - residual
                     remain_out_nc_spm = torch.sum(torch.squeeze(branch_out))
-                    macs = module.get_macs(remain_out_nc_pm, remain_out_nc_spm)
+                    macs = module.get_macs(remain_in_nc, remain_out_nc_spm)
+                    remain_in_nc = remain_out_nc_spm
                     total_macs += macs
                     cnt += 1
         return total_macs / 1e9

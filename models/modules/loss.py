@@ -206,11 +206,19 @@ def append_loss_nuc(model, alpha_nuc):
     li_conv_w = []
     li_pm_w = []
 
-    # downsampling layers
-    w = model.pm.weight.detach()
+    # first layer
+    w = model.pm1.weight.detach()
     binary_w = (w > 0.5).float()
     residual = w - binary_w
-    branch_out = model.pm.weight - residual
+    branch_out = model.pm1.weight - residual
+    li_pm_w.append(branch_out)
+    li_conv_w.append(model.model[1].weight)
+
+    # downsampling layers
+    w = model.pm2.weight.detach()
+    binary_w = (w > 0.5).float()
+    residual = w - binary_w
+    branch_out = model.pm2.weight - residual
     li_pm_w.append(branch_out)
     li_conv_w.append(model.model[4].weight)
     w = model.spm.weight.detach()

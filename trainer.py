@@ -100,7 +100,8 @@ class Trainer:
                             module.pm.weight.requires_grad = False
                             module.spm.weight.requires_grad = False
                     model.netG_student.spm.weight.requires_grad = False
-                    model.netG_student.pm.weight.requires_grad = False
+                    model.netG_student.pm1.weight.requires_grad = False
+                    model.netG_student.pm2.weight.requires_grad = False
                     model.netG_student.mode = 'original'
                     print('original mode'.center(100, '-'))
                 elif opt.bi_level_start_epoch <= epoch <= opt.R_max:  # bi-level optimization
@@ -113,7 +114,8 @@ class Trainer:
                                 module.pm.weight.requires_grad = True
                                 module.spm.weight.requires_grad = True
                         model.netG_student.spm.weight.requires_grad = True
-                        model.netG_student.pm.weight.requires_grad = True
+                        model.netG_student.pm1.weight.requires_grad = True
+                        model.netG_student.pm2.weight.requires_grad = True
                         model.netG_student.mode = 'prune'
                         print('prune mode'.center(100, '-'))
                     else:
@@ -125,7 +127,8 @@ class Trainer:
                                 module.pm.weight.requires_grad = False
                                 module.spm.weight.requires_grad = False
                         model.netG_student.spm.weight.requires_grad = False
-                        model.netG_student.pm.weight.requires_grad = False
+                        model.netG_student.pm1.weight.requires_grad = False
+                        model.netG_student.pm2.weight.requires_grad = False
                         model.netG_student.mode = 'original'
                         print('original mode'.center(100, '-'))
                 elif opt.R_max < epoch:
@@ -137,7 +140,8 @@ class Trainer:
                             module.pm.weight.requires_grad = False
                             module.spm.weight.requires_grad = False
                     model.netG_student.spm.weight.requires_grad = False
-                    model.netG_student.pm.weight.requires_grad = False
+                    model.netG_student.pm1.weight.requires_grad = False
+                    model.netG_student.pm2.weight.requires_grad = False
                     model.netG_student.mode = 'original'
                     print('original mode'.center(100, '-'))
             else:
@@ -150,6 +154,8 @@ class Trainer:
                             module.pm.weight.requires_grad = False
                             module.spm.weight.requires_grad = False
                     model.netG_student.spm.weight.requires_grad = False
+                    model.netG_student.pm1.weight.requires_grad = False
+                    model.netG_student.pm2.weight.requires_grad = False
                     model.netG_student.mode = 'prune'
                     print('freeze mode'.center(100, '-'))
 
@@ -200,12 +206,18 @@ def visualize_pruned_model(model, iter):
     for name, module in model.model.named_modules():
         if isinstance(module, nn.Conv2d):
             if not 'pm' in name and not 'spm' in name:  # only original conv
-                if name == '4':
-                    w = model.pm.weight.detach()
+                if name == '1':
+                    w = model.pm1.weight.detach()
                     binary_w = (w > 0.5).float()
-                    pm = int(torch.sum(torch.where(binary_w == 1, 1, 0)))
+                    pm1 = int(torch.sum(torch.where(binary_w == 1, 1, 0)))
                     dic_model['total'].append(int(module.weight.shape[0]))
-                    dic_model['remain'].append(pm)
+                    dic_model['remain'].append(pm1)
+                elif name == '4':
+                    w = model.pm2.weight.detach()
+                    binary_w = (w > 0.5).float()
+                    pm2 = int(torch.sum(torch.where(binary_w == 1, 1, 0)))
+                    dic_model['total'].append(int(module.weight.shape[0]))
+                    dic_model['remain'].append(pm2)
                 elif name == '7':
                     w = model.spm.weight.detach()
                     binary_w = (w > 0.5).float()
