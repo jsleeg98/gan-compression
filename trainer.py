@@ -11,7 +11,7 @@ from tqdm import tqdm, trange
 
 from data import create_dataloader
 from utils.logger import Logger
-from models.modules.resnet_architecture.super_mobile_resnet_generator import SuperMobileResnetBlock_with_SPM
+from models.modules.resnet_architecture.super_mobile_resnet_generator import SuperMobileResnetBlock_with_SPM, BinaryConv2d
 import wandb
 import matplotlib.pyplot as plt
 import torch.nn as nn
