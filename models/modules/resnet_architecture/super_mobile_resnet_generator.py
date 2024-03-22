@@ -72,6 +72,7 @@ class SuperMobileResnetBlock_with_SPM_bi(nn.Module):
         self.spm = SPM  # SPM
         self.pm = BinaryConv2d(in_channels=dim, out_channels=dim, groups=dim)  # PM
         self.mode = 'prune'  # bi-level
+        self.profile_SPM = False
     def build_conv_block(self, dim, padding_type, norm_layer, dropout_rate, use_bias):
         conv_block = []
         p = 0
@@ -111,22 +112,39 @@ class SuperMobileResnetBlock_with_SPM_bi(nn.Module):
         return nn.Sequential(*conv_block)
 
     def forward(self, input, config):
-        x = input
-        cnt = 0
-        for module in self.conv_block:
-            if isinstance(module, SuperSeparableConv2d):
-                if cnt == 1:
-                    config['channel'] = input.size(1)
-                x = module(x, config)
-                cnt += 1
-            else:
-                x = module(x)
-                if isinstance(module, nn.ReLU):  # pm after ReLU
-                    if self.mode == 'prune':
-                        x = self.pm(x)
-        out = input + x
-        if self.mode == 'prune':
-            out = self.spm(out)  # SPM
+        if not self.profile_SPM:
+            x = input
+            cnt = 0
+            for module in self.conv_block:
+                if isinstance(module, SuperSeparableConv2d):
+                    if cnt == 1:
+                        config['channel'] = input.size(1)
+                    x = module(x, config)
+                    cnt += 1
+                else:
+                    x = module(x)
+                    if isinstance(module, nn.ReLU):  # pm after ReLU
+                        if self.mode == 'prune':
+                            x = self.pm(x)
+            out = input + x
+            if self.mode == 'prune':
+                out = self.spm(out)  # SPM
+        else:
+            x = input
+            cnt = 0
+            for module in self.conv_block:
+                if isinstance(module, SuperSeparableConv2d):
+                    if cnt == 0:
+                        config['channel'] = torch.sum(torch.where(self.pm.weight > 0.5, 1, 0))
+                    if cnt == 1:
+                        config['channel'] = torch.sum(torch.where(self.spm.weight > 0.5, 1, 0))
+                    x = module(x, config)
+                    cnt += 1
+                else:
+                    x = module(x)
+            out = input + x
+            if self.mode == 'prune':
+                out = self.spm(out)  # SPM
         return out
 
     def get_macs(self, remain_in_nc):
@@ -299,6 +317,7 @@ class SuperMobileResnetGenerator_with_SPM_bi(BaseNetwork):
         self.pm = BinaryConv2d(in_channels=ngf * mult // 2, out_channels=ngf * mult // 2, groups=ngf * mult // 2)
         self.spm = BinaryConv2d(in_channels=ngf * mult, out_channels=ngf * mult, groups=ngf * mult)
         self.mode = 'prune'
+        self.profile_SPM = False
 
         for i in range(n_blocks1):
             model += [SuperMobileResnetBlock_with_SPM_bi(ngf * mult, padding_type=padding_type, norm_layer=norm_layer,
@@ -329,45 +348,106 @@ class SuperMobileResnetGenerator_with_SPM_bi(BaseNetwork):
         self.model = nn.Sequential(*model)
 
     def forward(self, input):
-        """Standard forward"""
-        configs = self.configs
-        input = input.clamp(-1, 1)
-        x = input
-        cnt = 0
-        for i in range(0, 10):
-            module = self.model[i]
-            if isinstance(module, SuperConv2d):
-                channel = configs['channels'][cnt] * (2 ** cnt)
-                config = {'channel': channel}
-                x = module(x, config)
-                cnt += 1
-            else:
-                x = module(x)
-        for i in range(3):
-            for j in range(10 + i * 3, 13 + i * 3):
-                if len(configs['channels']) == 6:
-                    channel = configs['channels'][3] * 4
+        if not self.profile_SPM:
+            """Standard forward"""
+            configs = self.configs
+            input = input.clamp(-1, 1)
+            x = input
+            cnt = 0
+            for i in range(0, 10):
+                module = self.model[i]
+                if isinstance(module, SuperConv2d):
+                    channel = configs['channels'][cnt] * (2 ** cnt)
+                    config = {'channel': channel}
+                    x = module(x, config)
+                    cnt += 1
                 else:
-                    channel = configs['channels'][i + 3] * 4
-                config = {'channel': channel}
-                module = self.model[j]
-                x = module(x, config)
-        cnt = 2
-        for i in range(19, 28):
-            module = self.model[i]
-            if isinstance(module, SuperConvTranspose2d):
-                cnt -= 1
-                if len(configs['channels']) == 6:
-                    channel = configs['channels'][5 - cnt] * (2 ** cnt)
+                    x = module(x)
+                    if cnt == 2 and isinstance(module, nn.ReLU):
+                        if self.mode == 'prune':
+                            x = self.pm(x)
+                    elif cnt == 3 and isinstance(module, nn.ReLU):
+                        if self.mode == 'prune':
+                            x = self.spm(x)
+            for i in range(3):
+                for j in range(10 + i * 3, 13 + i * 3):
+                    if len(configs['channels']) == 6:
+                        channel = configs['channels'][3] * 4
+                    else:
+                        channel = configs['channels'][i + 3] * 4
+                    config = {'channel': channel}
+                    module = self.model[j]
+                    x = module(x, config)
+            cnt = 2
+            for i in range(19, 28):
+                module = self.model[i]
+                if isinstance(module, SuperConvTranspose2d):
+                    cnt -= 1
+                    if len(configs['channels']) == 6:
+                        channel = configs['channels'][5 - cnt] * (2 ** cnt)
+                    else:
+                        channel = configs['channels'][7 - cnt] * (2 ** cnt)
+                    config = {'channel': channel}
+                    x = module(x, config)
+                elif isinstance(module, SuperConv2d):
+                    config = {'channel': module.out_channels}
+                    x = module(x, config)
                 else:
-                    channel = configs['channels'][7 - cnt] * (2 ** cnt)
-                config = {'channel': channel}
-                x = module(x, config)
-            elif isinstance(module, SuperConv2d):
-                config = {'channel': module.out_channels}
-                x = module(x, config)
-            else:
-                x = module(x)
+                    x = module(x)
+        else:
+            configs = self.configs
+            input = input.clamp(-1, 1)
+            x = input
+            cnt = 0
+            for i in range(0, 10):
+                module = self.model[i]
+                if isinstance(module, SuperConv2d):
+                    if cnt == 1:
+                        config = {'channel': torch.sum(torch.where(self.pm.weight > 0.5, 1, 0))}
+                        x = module(x, config)
+                        cnt += 1
+                    elif cnt == 2:
+                        config = {'channel': torch.sum(torch.where(self.spm.weight > 0.5, 1, 0))}
+                        x = module(x, config)
+                        cnt += 1
+                    else:
+                        channel = configs['channels'][cnt] * (2 ** cnt)
+                        config = {'channel': channel}
+                        x = module(x, config)
+                        cnt += 1
+                else:
+                    x = module(x)
+                    if cnt == 2 and isinstance(module, nn.ReLU):
+                        if self.mode == 'prune':
+                            x = self.pm(x)
+                    elif cnt == 3 and isinstance(module, nn.ReLU):
+                        if self.mode == 'prune':
+                            x = self.spm(x)
+            for i in range(3):
+                for j in range(10 + i * 3, 13 + i * 3):
+                    if len(configs['channels']) == 6:
+                        channel = configs['channels'][3] * 4
+                    else:
+                        channel = configs['channels'][i + 3] * 4
+                    config = {'channel': channel}
+                    module = self.model[j]
+                    x = module(x, config)
+            cnt = 2
+            for i in range(19, 28):
+                module = self.model[i]
+                if isinstance(module, SuperConvTranspose2d):
+                    cnt -= 1
+                    if len(configs['channels']) == 6:
+                        channel = configs['channels'][5 - cnt] * (2 ** cnt)
+                    else:
+                        channel = configs['channels'][7 - cnt] * (2 ** cnt)
+                    config = {'channel': channel}
+                    x = module(x, config)
+                elif isinstance(module, SuperConv2d):
+                    config = {'channel': module.out_channels}
+                    x = module(x, config)
+                else:
+                    x = module(x)
         return x
 
     def get_macs(self):

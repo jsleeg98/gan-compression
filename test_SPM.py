@@ -100,11 +100,12 @@ if __name__ == '__main__':
     for i, data in enumerate(tqdm.tqdm(dataloader)):
         model.set_input(data)  # unpack data from data loader
         if i == 0 and opt.need_profile:
+            model.netG.mode = 'original'
+            model.netG.profile_SPM = True
             for name, module in model.netG.model.named_children():
                 if isinstance(module, SuperMobileResnetBlock_with_SPM_bi):
+                    module.mode = 'original'
                     module.profile_SPM = True
-                    print(f'pm : {torch.sum(torch.where(module.pm.weight > 0.5 , 1, 0))}')
-                    print(f'spm : {torch.sum(torch.where(module.spm.weight > 0.5 , 1, 0))}')
             model.profile(config)
             import pdb; pdb.set_trace()
         model.test(config)  # run inference
