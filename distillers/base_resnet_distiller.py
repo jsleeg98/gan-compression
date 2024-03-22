@@ -75,6 +75,9 @@ class BaseResnetDistiller(BaseModel):
         for name, module in self.netG_student.model.named_modules():
             if isinstance(module, BinaryConv2d):
                 nn.init.constant_(module.weight, 0.6)
+        nn.init.constant_(self.netG_student.pm.weight, 0.6)
+        nn.init.constant_(self.netG_student.spm.weight, 0.6)
+
         if hasattr(opt, 'distiller'):
             self.netG_pretrained = networks.define_G(opt.pretrained_netG, input_nc=opt.input_nc,
                                                      output_nc=opt.output_nc, ngf=opt.pretrained_ngf,
