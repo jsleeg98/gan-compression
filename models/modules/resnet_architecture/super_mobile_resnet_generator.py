@@ -65,12 +65,13 @@ class SuperMobileResnetBlock(nn.Module):
         return out
 
 
-class SuperMobileResnetBlock_with_SPM(nn.Module):
+class SuperMobileResnetBlock_with_SPM_bi(nn.Module):
     def __init__(self, dim, padding_type, norm_layer, dropout_rate, use_bias, SPM):
-        super(SuperMobileResnetBlock_with_SPM, self).__init__()
+        super(SuperMobileResnetBlock_with_SPM_bi, self).__init__()
         self.conv_block = self.build_conv_block(dim, padding_type, norm_layer, dropout_rate, use_bias)
         self.spm = SPM  # SPM
         self.pm = BinaryConv2d(in_channels=dim, out_channels=dim, groups=dim)  # PM
+        self.mode = 'prune'  # bi-level
     def build_conv_block(self, dim, padding_type, norm_layer, dropout_rate, use_bias):
         conv_block = []
         p = 0
@@ -121,9 +122,11 @@ class SuperMobileResnetBlock_with_SPM(nn.Module):
             else:
                 x = module(x)
                 if isinstance(module, nn.ReLU):  # pm after ReLU
-                    x = self.pm(x)
+                    if self.mode == 'prune':
+                        x = self.pm(x)
         out = input + x
-        out = self.spm(out)  # SPM
+        if self.mode == 'prune':
+            out = self.spm(out)  # SPM
         return out
 
     def get_macs(self, remain_in_nc):
@@ -265,11 +268,11 @@ class BinaryConv2d(nn.Conv2d):
         return output
 
 
-class SuperMobileResnetGenerator_with_SPM(BaseNetwork):
+class SuperMobileResnetGenerator_with_SPM_bi(BaseNetwork):
     def __init__(self, input_nc, output_nc, ngf, norm_layer=nn.BatchNorm2d, dropout_rate=0, n_blocks=6,
                  padding_type='reflect'):
         assert n_blocks >= 0
-        super(SuperMobileResnetGenerator_with_SPM, self).__init__()
+        super(SuperMobileResnetGenerator_with_SPM_bi, self).__init__()
         if type(norm_layer) == functools.partial:
             use_bias = norm_layer.func == nn.InstanceNorm2d
         else:
@@ -298,17 +301,17 @@ class SuperMobileResnetGenerator_with_SPM(BaseNetwork):
         self.spm3 = BinaryConv2d(in_channels=ngf * mult, out_channels=ngf * mult, groups=ngf * mult)
 
         for i in range(n_blocks1):
-            model += [SuperMobileResnetBlock_with_SPM(ngf * mult, padding_type=padding_type, norm_layer=norm_layer,
+            model += [SuperMobileResnetBlock_with_SPM_bi(ngf * mult, padding_type=padding_type, norm_layer=norm_layer,
                                              dropout_rate=dropout_rate,
                                              use_bias=use_bias, SPM=self.spm1)]
 
         for i in range(n_blocks2):
-            model += [SuperMobileResnetBlock_with_SPM(ngf * mult, padding_type=padding_type, norm_layer=norm_layer,
+            model += [SuperMobileResnetBlock_with_SPM_bi(ngf * mult, padding_type=padding_type, norm_layer=norm_layer,
                                              dropout_rate=dropout_rate,
                                              use_bias=use_bias, SPM=self.spm2)]
 
         for i in range(n_blocks3):
-            model += [SuperMobileResnetBlock_with_SPM(ngf * mult, padding_type=padding_type, norm_layer=norm_layer,
+            model += [SuperMobileResnetBlock_with_SPM_bi(ngf * mult, padding_type=padding_type, norm_layer=norm_layer,
                                              dropout_rate=dropout_rate,
                                              use_bias=use_bias, SPM=self.spm3)]
 
@@ -371,7 +374,7 @@ class SuperMobileResnetGenerator_with_SPM(BaseNetwork):
         total_macs = torch.tensor([0.]).cuda()
         remain_in_nc = torch.tensor([128]).cuda()
         for name, module in self.model.named_children():
-            if isinstance(module, SuperMobileResnetBlock_with_SPM):
+            if isinstance(module, SuperMobileResnetBlock_with_SPM_bi):
                 macs, remain_in_nc = module.get_macs(remain_in_nc)
                 total_macs += macs
         return total_macs / 1e9
