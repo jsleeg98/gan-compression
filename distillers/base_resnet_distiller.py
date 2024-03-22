@@ -54,7 +54,7 @@ class BaseResnetDistiller(BaseModel):
     def __init__(self, opt):
         assert opt.isTrain
         valid_netGs = ['resnet_9blocks', 'mobile_resnet_9blocks',
-                       'super_mobile_resnet_9blocks', 'sub_mobile_resnet_9blocks', 'super_mobile_resnet_9blocks_SPM']
+                       'super_mobile_resnet_9blocks', 'sub_mobile_resnet_9blocks', 'super_mobile_resnet_9blocks_SPM_bi']
         assert opt.teacher_netG in valid_netGs and opt.student_netG in valid_netGs
         super(BaseResnetDistiller, self).__init__(opt)
         self.loss_names = ['G_gan', 'G_distill', 'G_recon', 'D_fake', 'D_real', 'netG_student_mac', 'netG_student_nuc']
