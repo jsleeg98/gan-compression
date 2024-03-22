@@ -2,8 +2,8 @@
 python train_supernet.py --dataroot database/horse2zebra \
   --dataset_mode unaligned \
   --supernet resnet \
-  --student_netG super_mobile_resnet_9blocks_SPM \
-  --log_dir logs/cycle_gan/horse2zebra/supernet_SPM_test_loss \
+  --student_netG super_mobile_resnet_9blocks_SPM_bi \
+  --log_dir logs/cycle_gan/horse2zebra/ \
   --gan_mode lsgan \
   --student_ngf 32 --ndf 64 \
   --restore_teacher_G_path ./pretrained/cycle_gan/horse2zebra/mobile/latest_net_G.pth \
@@ -16,13 +16,14 @@ python train_supernet.py --dataroot database/horse2zebra \
   --metaA_path datasets/metas/horse2zebra/train1A.meta \
   --metaB_path datasets/metas/horse2zebra/train1B.meta \
   --config_str 32_32_32_32_32_32_32_32 \
-  --alpha_mac 5.0 \
+  --alpha_mac 10.0 \
   --alpha_nuc 0.001 \
   --target_ratio 0.5 \
   --R_max 6 \
   --proj_name cyclegan_bi_level \
+  --log_name supernet_SPM_full \
   --bi_level_train \
-  --bi_level_interval 2 \
+  --bi_level_interval 3 \
   --bi_level_start_epoch 1 \
   #  --config_set channels-32 \
 #  --restore_student_G_path logs/cycle_gan/horse2zebra/distill/checkpoints/latest_net_G.pth \
