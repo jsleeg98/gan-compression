@@ -296,24 +296,24 @@ class SuperMobileResnetGenerator_with_SPM_bi(BaseNetwork):
         n_blocks2 = n_blocks1
         n_blocks3 = n_blocks - n_blocks1 - n_blocks2
 
-        self.spm1 = BinaryConv2d(in_channels=ngf * mult, out_channels=ngf * mult, groups=ngf * mult)
-        self.spm2 = BinaryConv2d(in_channels=ngf * mult, out_channels=ngf * mult, groups=ngf * mult)
-        self.spm3 = BinaryConv2d(in_channels=ngf * mult, out_channels=ngf * mult, groups=ngf * mult)
+        self.pm = BinaryConv2d(in_channels=ngf * mult // 2, out_channels=ngf * mult // 2, groups=ngf * mult // 2)
+        self.spm = BinaryConv2d(in_channels=ngf * mult, out_channels=ngf * mult, groups=ngf * mult)
+        self.mode = 'prune'
 
         for i in range(n_blocks1):
             model += [SuperMobileResnetBlock_with_SPM_bi(ngf * mult, padding_type=padding_type, norm_layer=norm_layer,
                                              dropout_rate=dropout_rate,
-                                             use_bias=use_bias, SPM=self.spm1)]
+                                             use_bias=use_bias, SPM=self.spm)]
 
         for i in range(n_blocks2):
             model += [SuperMobileResnetBlock_with_SPM_bi(ngf * mult, padding_type=padding_type, norm_layer=norm_layer,
                                              dropout_rate=dropout_rate,
-                                             use_bias=use_bias, SPM=self.spm2)]
+                                             use_bias=use_bias, SPM=self.spm)]
 
         for i in range(n_blocks3):
             model += [SuperMobileResnetBlock_with_SPM_bi(ngf * mult, padding_type=padding_type, norm_layer=norm_layer,
                                              dropout_rate=dropout_rate,
-                                             use_bias=use_bias, SPM=self.spm3)]
+                                             use_bias=use_bias, SPM=self.spm)]
 
         for i in range(n_downsampling):  # add upsampling layers
             mult = 2 ** (n_downsampling - i)
