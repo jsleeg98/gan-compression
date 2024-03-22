@@ -13,6 +13,9 @@ from data import create_dataloader
 from utils.logger import Logger
 from models.modules.resnet_architecture.super_mobile_resnet_generator import SuperMobileResnetBlock_with_SPM
 import wandb
+import matplotlib.pyplot as plt
+import torch.nn as nn
+import gc
 
 
 def set_seed(seed):
@@ -93,6 +96,8 @@ class Trainer:
                     losses = model.get_current_losses()
                     logger.print_current_errors(epoch, total_iter, losses, time.time() - iter_start_time)
                     logger.plot(losses, total_iter)
+                    fig = visualize_pruned_model(model.netG_student.model, total_iter)
+                    wandb.log({'pruned structure': wandb.Image(fig)})
 
                 if total_iter % opt.save_latest_freq == 0:
                     self.evaluate(epoch, total_iter,
@@ -122,3 +127,55 @@ class Trainer:
                 for name, module in model.netG_student.model.named_children():
                     if isinstance(module, SuperMobileResnetBlock_with_SPM):
                         module.pm.weight.requires_grad = False
+
+
+
+def visualize_pruned_model(model, iter):
+    dic_model = {'name': [], 'total': [], 'remain': []}
+
+    for name, module in model.named_modules():
+        if isinstance(module, nn.Conv2d):
+            if not 'pm' in name and not 'spm' in name:  # only original conv
+                if hasattr(model[int(name.split('.')[0])], 'pm') and hasattr(model[int(name.split('.')[0])], 'spm'):  # SuperMobileResnetBlock
+                    w = model[int(name.split('.')[0])].pm.weight.detach()
+                    binary_w = (w > 0.5).float()
+                    pm = int(torch.sum(torch.where(binary_w == 1, 1, 0)))
+                    w = model[int(name.split('.')[0])].spm.weight.detach()
+                    binary_w = (w > 0.5).float()
+                    spm = int(torch.sum(torch.where(binary_w == 1, 1, 0)))
+                    if '1.conv.2' in name:
+                        dic_model['total'].append(int(module.weight.shape[0]))
+                        dic_model['remain'].append(pm)
+                    elif '6.conv.2' in name:
+                        dic_model['total'].append(int(module.weight.shape[0]))
+                        dic_model['remain'].append(spm)
+                    else:
+                        dic_model['total'].append(int(module.weight.shape[0]))
+                        dic_model['remain'].append(int(module.weight.shape[0]))
+                    dic_model['name'].append(name)
+                else:
+                    dic_model['name'].append(name)
+                    dic_model['total'].append(int(module.weight.shape[0]))
+                    dic_model['remain'].append(int(module.weight.shape[0]))
+
+    idx = np.arange(len(dic_model['name']))
+    bar_width = 0.7
+    fig = plt.figure(figsize=(16, 10))
+    plt.style.use('seaborn')
+    bar_1 = plt.bar(idx, dic_model['total'], bar_width, color='gray', alpha=0.5)
+    plt.bar(idx, dic_model['remain'], bar_width, color='green', alpha=0.5)
+    plt.xticks(list(idx), dic_model['name'], rotation=90)
+    plt.ylim(0, 150)
+    plt.title(f'Cyclegan (iter : {iter})', size=15, weight='bold')
+    plt.ylabel('output channels', size=20, weight='bold')
+    plt.xlabel('index', size=15, weight='bold')
+
+    for i, rect in enumerate(bar_1):
+        remain_ratio = int(dic_model['remain'][i] / dic_model['total'][i] * 100)
+        height = rect.get_height()
+        plt.text(rect.get_x() + rect.get_width() / 2.0, height + 2, f'{remain_ratio}%', ha='center', va='bottom',
+                 size=10, rotation=90)
+
+    plt.grid(True)
+    plt.tight_layout()
+    return fig
