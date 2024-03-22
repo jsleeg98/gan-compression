@@ -72,7 +72,7 @@ class SuperMobileResnetBlock_with_SPM_bi(nn.Module):
         self.spm = SPM  # SPM
         self.pm = BinaryConv2d(in_channels=dim, out_channels=dim, groups=dim)  # PM
         self.mode = 'prune'  # bi-level
-        self.profile_SPM = False
+        self.profile_SPM = False  # SPM profile
     def build_conv_block(self, dim, padding_type, norm_layer, dropout_rate, use_bias):
         conv_block = []
         p = 0
@@ -316,8 +316,8 @@ class SuperMobileResnetGenerator_with_SPM_bi(BaseNetwork):
 
         self.pm = BinaryConv2d(in_channels=ngf * mult // 2, out_channels=ngf * mult // 2, groups=ngf * mult // 2)
         self.spm = BinaryConv2d(in_channels=ngf * mult, out_channels=ngf * mult, groups=ngf * mult)
-        self.mode = 'prune'
-        self.profile_SPM = False
+        self.mode = 'prune'  # bi-level
+        self.profile_SPM = False  # SPM profile
 
         for i in range(n_blocks1):
             model += [SuperMobileResnetBlock_with_SPM_bi(ngf * mult, padding_type=padding_type, norm_layer=norm_layer,
