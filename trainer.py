@@ -99,10 +99,9 @@ class Trainer:
                             module.mode = 'original'
                             module.pm.weight.requires_grad = False
                             module.spm.weight.requires_grad = False
-                            print(name)
-                    model.netG_student.spm1.weight.requires_grad = False
-                    model.netG_student.spm2.weight.requires_grad = False
-                    model.netG_student.spm3.weight.requires_grad = False
+                    model.netG_student.spm.weight.requires_grad = False
+                    model.netG_student.pm.weight.requires_grad = False
+                    model.netG_student.mode = 'original'
                     print('original mode'.center(100, '-'))
                 elif opt.bi_level_start_epoch <= epoch <= opt.R_max:  # bi-level optimization
                     if epoch % opt.bi_level_interval == 0:
@@ -113,10 +112,9 @@ class Trainer:
                                 module.mode = 'prune'
                                 module.pm.weight.requires_grad = True
                                 module.spm.weight.requires_grad = True
-                                print(name)
-                        model.netG_student.spm1.weight.requires_grad = True
-                        model.netG_student.spm2.weight.requires_grad = True
-                        model.netG_student.spm3.weight.requires_grad = True
+                        model.netG_student.spm.weight.requires_grad = True
+                        model.netG_student.pm.weight.requires_grad = True
+                        model.netG_student.mode = 'prune'
                         print('prune mode'.center(100, '-'))
                     else:
                         opt.no_mac_loss = True
@@ -126,10 +124,9 @@ class Trainer:
                                 module.mode = 'original'
                                 module.pm.weight.requires_grad = False
                                 module.spm.weight.requires_grad = False
-                                print(name)
-                        model.netG_student.spm1.weight.requires_grad = False
-                        model.netG_student.spm2.weight.requires_grad = False
-                        model.netG_student.spm3.weight.requires_grad = False
+                        model.netG_student.spm.weight.requires_grad = False
+                        model.netG_student.pm.weight.requires_grad = False
+                        model.netG_student.mode = 'original'
                         print('original mode'.center(100, '-'))
                 elif opt.R_max < epoch:
                     opt.no_mac_loss = True
@@ -139,10 +136,9 @@ class Trainer:
                             module.mode = 'original'
                             module.pm.weight.requires_grad = False
                             module.spm.weight.requires_grad = False
-                            print(name)
-                    model.netG_student.spm1.weight.requires_grad = False
-                    model.netG_student.spm2.weight.requires_grad = False
-                    model.netG_student.spm3.weight.requires_grad = False
+                    model.netG_student.spm.weight.requires_grad = False
+                    model.netG_student.pm.weight.requires_grad = False
+                    model.netG_student.mode = 'original'
                     print('original mode'.center(100, '-'))
             else:
                 if opt.R_max < epoch:
