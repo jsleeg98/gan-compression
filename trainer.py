@@ -146,14 +146,12 @@ class Trainer:
                     opt.no_nuc_loss = True
                     for name, module in model.netG_student.model.named_children():
                         if isinstance(module, SuperMobileResnetBlock_with_SPM_bi):
-                            module.mode = 'original'
+                            module.mode = 'prune'
                             module.pm.weight.requires_grad = False
                             module.spm.weight.requires_grad = False
-                            print(name)
-                    model.netG_student.spm1.weight.requires_grad = False
-                    model.netG_student.spm2.weight.requires_grad = False
-                    model.netG_student.spm3.weight.requires_grad = False
-                    print('original mode'.center(100, '-'))
+                    model.netG_student.spm.weight.requires_grad = False
+                    model.netG_student.mode = 'prune'
+                    print('freeze mode'.center(100, '-'))
 
             for i, data_i in enumerate(tqdm(dataloader, desc='Batch      ', position=1, leave=False)):
                 iter_start_time = time.time()
