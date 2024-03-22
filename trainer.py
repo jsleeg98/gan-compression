@@ -63,6 +63,9 @@ class Trainer:
         self.model = model
         self.logger = logger
 
+        warnings.filterwarnings("ignore",
+                                message="Was asked to gather along dimension 0, but all input tensors were scalars; will instead unsqueeze and return a vector.")
+
     def evaluate(self, epoch, iter, message):
         start_time = time.time()
         metrics = self.model.evaluate_model(iter)
