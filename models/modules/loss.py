@@ -260,5 +260,6 @@ def append_loss_nuc(model, alpha_nuc):
 
     criterion = nn.L1Loss()
     nuc_loss = criterion(origin_nuc_norm, pruned_nuc_norm) * alpha_nuc
+    del li_conv_w, li_pm_w, li_pruned_conv, origin_nuc_norm, pruned_nuc_norm
 
     return nuc_loss

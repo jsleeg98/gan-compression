@@ -172,6 +172,7 @@ class Trainer:
                     logger.plot(losses, total_iter)
                     fig = visualize_pruned_model(model.netG_student, total_iter)
                     wandb.log({'pruned structure': wandb.Image(fig)})
+                    plt.close(fig)
 
                 if total_iter % opt.save_latest_freq == 0:
                     self.evaluate(epoch, total_iter,
