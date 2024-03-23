@@ -192,7 +192,7 @@ class Trainer:
                     break
             logger.print_info(
                 'End of epoch %d / %d \t Time Taken: %.2f sec' % (epoch, end_epoch, time.time() - epoch_start_time))
-            if epoch % opt.save_epoch_freq == 0 or epoch == end_epoch or total_iter >= opt.niters:
+            if epoch % opt.save_epoch_freq == 0 or epoch == end_epoch or total_iter >= opt.niters or epoch % 10 == 9:
                 self.evaluate(epoch, total_iter,
                               'Saving the model at the end of epoch %d, iters %d' % (epoch, total_iter))
                 model.save_networks(epoch)
