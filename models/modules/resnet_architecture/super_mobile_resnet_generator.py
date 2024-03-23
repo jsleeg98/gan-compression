@@ -461,15 +461,21 @@ class SuperMobileResnetGenerator_with_SPM_bi(BaseNetwork):
                     x = module(x)
         return x
 
-    def get_macs(self):
-        cnt = 0
+    def get_macs_resnet(self, remain_in_nc):
         total_macs = torch.tensor([0.]).cuda()
-        remain_in_nc = torch.tensor([3]).cuda()
+        remain_in_nc = torch.tensor([remain_in_nc]).cuda()
         for name, module in self.model.named_children():
             if isinstance(module, SuperMobileResnetBlock_with_SPM_bi):
                 macs, remain_in_nc = module.get_macs(remain_in_nc)
                 total_macs += macs
-            elif isinstance(module, SuperConv2d) and module.kernel_size[0] == 7 and name == '1':
+        return total_macs / 1e9
+
+    def get_macs_front(self):
+        cnt = 0
+        total_macs = torch.tensor([0.]).cuda()
+        remain_in_nc = torch.tensor([3]).cuda()
+        for name, module in self.model.named_children():
+            if isinstance(module, SuperConv2d) and module.kernel_size[0] == 7 and name == '1':
                 w = self.pm1.weight.detach()
                 binary_w = (w > 0.5).float()
                 residual = w - binary_w
@@ -499,4 +505,4 @@ class SuperMobileResnetGenerator_with_SPM_bi(BaseNetwork):
                     remain_in_nc = remain_out_nc_spm
                     total_macs += macs
                     cnt += 1
-        return total_macs / 1e9
+        return total_macs / 1e9, remain_in_nc
