@@ -230,7 +230,7 @@ class BaseResnetDistiller(BaseModel):
             wandb.log({'cur macs' : cur_macs_front + cur_macs_resnet})
             wandb.log({'cur macs front ratio' : cur_macs_front / 0.9123})
             wandb.log({'cur macs resnet ratio' : cur_macs_resnet / 1.2929})
-            wandb.log({'cur macs ratio' : cur_macs_front + cur_macs_resnet / 2.2052})
+            wandb.log({'cur macs ratio' : (cur_macs_front + cur_macs_resnet) / 2.2052})
             del cur_macs_front, target_macs_front, cur_macs_resnet, target_macs_resnet
         else:
             cur_macs_front, remain_in_nc = self.netG_student.get_macs_front()
@@ -240,8 +240,10 @@ class BaseResnetDistiller(BaseModel):
             wandb.log({'cur macs': cur_macs_front + cur_macs_resnet})
             wandb.log({'cur macs front ratio': cur_macs_front / 0.9123})
             wandb.log({'cur macs resnet ratio': cur_macs_resnet / 1.2929})
-            wandb.log({'cur macs ratio': cur_macs_front + cur_macs_resnet / 2.2052})
+            wandb.log({'cur macs ratio': (cur_macs_front + cur_macs_resnet) / 2.2052})
             del cur_macs_front, cur_macs_resnet
+            self.loss_netG_student_mac_front = torch.tensor([0.]).cuda()
+            self.loss_netG_student_mac_front = torch.tensor([0.]).cuda()
             self.loss_netG_student_mac = torch.tensor([0.]).cuda()
         if not self.opt.no_nuc_loss:
             self.loss_netG_student_nuc = append_loss_nuc(self.netG_student, self.opt.alpha_nuc)
