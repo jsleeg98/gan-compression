@@ -136,14 +136,14 @@ class Trainer:
                     opt.no_nuc_loss = True
                     for name, module in model.netG_student.model.named_children():
                         if isinstance(module, SuperMobileResnetBlock_with_SPM_bi):
-                            module.mode = 'original'
+                            module.mode = 'prune'
                             module.pm.weight.requires_grad = False
                             module.spm.weight.requires_grad = False
                     model.netG_student.spm.weight.requires_grad = False
                     model.netG_student.pm1.weight.requires_grad = False
                     model.netG_student.pm2.weight.requires_grad = False
-                    model.netG_student.mode = 'original'
-                    print('original mode'.center(100, '-'))
+                    model.netG_student.mode = 'prune'
+                    print('freeze mode'.center(100, '-'))
             else:
                 if opt.R_max < epoch:
                     opt.no_mac_loss = True
