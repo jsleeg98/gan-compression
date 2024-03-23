@@ -57,7 +57,7 @@ class BaseResnetDistiller(BaseModel):
                        'super_mobile_resnet_9blocks', 'sub_mobile_resnet_9blocks', 'super_mobile_resnet_9blocks_SPM_bi']
         assert opt.teacher_netG in valid_netGs and opt.student_netG in valid_netGs
         super(BaseResnetDistiller, self).__init__(opt)
-        self.loss_names = ['G_gan', 'G_distill', 'G_recon', 'D_fake', 'D_real', 'netG_student_mac', 'netG_student_nuc']
+        self.loss_names = ['G_gan', 'G_distill', 'G_recon', 'D_fake', 'D_real', 'netG_student_mac', 'netG_student_nuc', 'netG_student_mac_front', 'netG_student_mac_resnet']
         self.optimizers = []
         self.image_paths = []
         self.visual_names = ['real_A', 'Sfake_B', 'Tfake_B', 'real_B']
