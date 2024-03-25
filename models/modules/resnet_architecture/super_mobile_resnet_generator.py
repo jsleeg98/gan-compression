@@ -475,7 +475,7 @@ class SuperMobileResnetGenerator_with_SPM_bi(BaseNetwork):
             if isinstance(module, SuperMobileResnetBlock_with_SPM_bi):
                 macs, remain_in_nc = module.get_macs(remain_in_nc)
                 total_macs += macs
-        return total_macs / 1e9
+        return total_macs / 1e9, remain_in_nc
 
     def get_macs_front(self):
         cnt = 0
