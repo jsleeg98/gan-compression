@@ -39,6 +39,10 @@ class BaseResnetDistiller(BaseModel):
         parser.add_argument('--no_mac_loss', action="store_true", help='turn off mac loss')
         parser.add_argument('--target_ratio', type=float, default=0.5)
         parser.add_argument('--alpha_mac', type=float, default=0.5)
+        parser.add_argument('--mac_front', action="store_true", help='mac loss for front')
+        parser.add_argument('--mac_downsample', action="store_true", help='mac loss for downsampling')
+        parser.add_argument('--mac_resnet', action="store_true", help='mac loss for resnet')
+        parser.add_argument('--mac_upsample', action="store_true", help='mac loss for upsampling')
         parser.add_argument('--no_nuc_loss', action="store_true", help='turn off nuc loss')
         parser.add_argument('--alpha_nuc', type=float, default=0.001)
         parser.add_argument('--R_max', type=int, default=400)
@@ -57,7 +61,7 @@ class BaseResnetDistiller(BaseModel):
                        'super_mobile_resnet_9blocks', 'sub_mobile_resnet_9blocks', 'super_mobile_resnet_9blocks_SPM_bi']
         assert opt.teacher_netG in valid_netGs and opt.student_netG in valid_netGs
         super(BaseResnetDistiller, self).__init__(opt)
-        self.loss_names = ['G_gan', 'G_distill', 'G_recon', 'D_fake', 'D_real', 'netG_student_mac', 'netG_student_nuc', 'netG_student_mac_front', 'netG_student_mac_resnet']
+        self.loss_names = ['G_gan', 'G_distill', 'G_recon', 'D_fake', 'D_real', 'netG_student_mac', 'netG_student_nuc', 'netG_student_mac_front', 'netG_student_mac_downsample', 'netG_student_mac_resnet', 'netG_student_mac_upsample']
         self.optimizers = []
         self.image_paths = []
         self.visual_names = ['real_A', 'Sfake_B', 'Tfake_B', 'real_B']
@@ -78,6 +82,9 @@ class BaseResnetDistiller(BaseModel):
         nn.init.constant_(self.netG_student.pm1.weight, 0.6)
         nn.init.constant_(self.netG_student.pm2.weight, 0.6)
         nn.init.constant_(self.netG_student.spm.weight, 0.6)
+        nn.init.constant_(self.netG_student.pm3.weight, 0.6)
+        nn.init.constant_(self.netG_student.pm4.weight, 0.6)
+
 
         if hasattr(opt, 'distiller'):
             self.netG_pretrained = networks.define_G(opt.pretrained_netG, input_nc=opt.input_nc,
@@ -218,32 +225,65 @@ class BaseResnetDistiller(BaseModel):
             self.loss_G_distill = 0
         if not self.opt.no_mac_loss:
             cur_macs_front, remain_in_nc = self.netG_student.get_macs_front()
-            target_macs_front = torch.tensor([0.9123]).cuda() * (1 - self.opt.target_ratio)
+            cur_macs_downsample, remain_in_nc = self.netG_student.get_macs_downsample(remain_in_nc)
+            cur_macs_resnet, remain_in_nc = self.netG_student.get_macs_resnet(remain_in_nc)
+            cur_macs_upsample, remain_in_nc = self.netG_student.get_macs_upsample(remain_in_nc)
 
-            cur_macs_resnet = self.netG_student.get_macs_resnet(remain_in_nc)
+            target_macs_front = torch.tensor([0.3083]).cuda() * (1 - self.opt.target_ratio)
+            target_macs_downsample = torch.tensor([0.6040]).cuda() * (1 - self.opt.target_ratio)
             target_macs_resnet = torch.tensor([1.2929]).cuda() * (1 - self.opt.target_ratio)
+            target_macs_upsample = torch.tensor([2.4159]).cuda() * (1 - self.opt.target_ratio)
+
             self.loss_netG_student_mac_front = append_loss_mac(cur_macs_front, target_macs_front, self.opt.alpha_mac)
+            self.loss_netG_student_mac_downsample = append_loss_mac(cur_macs_downsample, target_macs_downsample, self.opt.alpha_mac)
             self.loss_netG_student_mac_resnet = append_loss_mac(cur_macs_resnet, target_macs_resnet, self.opt.alpha_mac)
-            self.loss_netG_student_mac = self.loss_netG_student_mac_front + self.loss_netG_student_mac_resnet
+            self.loss_netG_student_mac_upsample = append_loss_mac(cur_macs_upsample, target_macs_upsample, self.opt.alpha_mac)
+
+            self.loss_netG_student_mac = torch.tensor([0.]).cuda()
+            if self.opt.mac_front:
+                self.loss_netG_student_mac += self.loss_netG_student_mac_front
+            if self.opt.mac_downsample:
+                self.loss_netG_student_mac += self.loss_netG_student_mac_downsample
+            if self.opt.mac_resnet:
+                self.loss_netG_student_mac += self.loss_netG_student_mac_resnet
+            if self.opt.mac_upsample:
+                self.loss_netG_student_mac += self.loss_netG_student_mac_upsample
+
             wandb.log({'cur macs front' : cur_macs_front})
+            wandb.log({'cur macs downsample' : cur_macs_downsample})
             wandb.log({'cur macs resnet' : cur_macs_resnet})
-            wandb.log({'cur macs' : cur_macs_front + cur_macs_resnet})
-            wandb.log({'cur macs front ratio' : cur_macs_front / 0.9123})
+            wandb.log({'cur macs upsample' : cur_macs_upsample})
+            wandb.log({'cur macs' : cur_macs_front + cur_macs_downsample + cur_macs_resnet + cur_macs_upsample})
+            wandb.log({'cur macs front ratio' : cur_macs_front / 0.3083})
+            wandb.log({'cur macs downsample ratio' : cur_macs_downsample / 0.6040})
             wandb.log({'cur macs resnet ratio' : cur_macs_resnet / 1.2929})
-            wandb.log({'cur macs ratio' : (cur_macs_front + cur_macs_resnet) / 2.2052})
-            del cur_macs_front, target_macs_front, cur_macs_resnet, target_macs_resnet
+            wandb.log({'cur macs upsample ratio' : cur_macs_upsample / 2.4159})
+            wandb.log({'cur macs ratio' : (cur_macs_front + cur_macs_downsample + cur_macs_resnet + cur_macs_upsample) / 4.6211})
+            del cur_macs_front, cur_macs_downsample, cur_macs_resnet, cur_macs_upsample
+            del target_macs_front, target_macs_downsample, target_macs_resnet, target_macs_upsample
+            del remain_in_nc
         else:
             cur_macs_front, remain_in_nc = self.netG_student.get_macs_front()
-            cur_macs_resnet = self.netG_student.get_macs_resnet(remain_in_nc)
+            cur_macs_downsample, remain_in_nc = self.netG_student.get_macs_downsample(remain_in_nc)
+            cur_macs_resnet, remain_in_nc = self.netG_student.get_macs_resnet(remain_in_nc)
+            cur_macs_upsample, remain_in_nc = self.netG_student.get_macs_upsample(remain_in_nc)
+
             wandb.log({'cur macs front': cur_macs_front})
+            wandb.log({'cur macs downsample': cur_macs_downsample})
             wandb.log({'cur macs resnet': cur_macs_resnet})
-            wandb.log({'cur macs': cur_macs_front + cur_macs_resnet})
-            wandb.log({'cur macs front ratio': cur_macs_front / 0.9123})
+            wandb.log({'cur macs upsample': cur_macs_upsample})
+            wandb.log({'cur macs': (cur_macs_front + cur_macs_downsample + cur_macs_resnet + cur_macs_upsample)})
+            wandb.log({'cur macs front ratio': cur_macs_front / 0.3083})
+            wandb.log({'cur macs downsample ratio': cur_macs_downsample / 0.6040})
             wandb.log({'cur macs resnet ratio': cur_macs_resnet / 1.2929})
-            wandb.log({'cur macs ratio': (cur_macs_front + cur_macs_resnet) / 2.2052})
-            del cur_macs_front, cur_macs_resnet
+            wandb.log({'cur macs upsample ratio': cur_macs_upsample / 2.4159})
+            wandb.log({'cur macs ratio': (cur_macs_front + cur_macs_downsample + cur_macs_resnet + cur_macs_upsample) / 4.6211})
+            del cur_macs_front, cur_macs_downsample, cur_macs_resnet, cur_macs_upsample
+            del remain_in_nc
             self.loss_netG_student_mac_front = torch.tensor([0.]).cuda()
-            self.loss_netG_student_mac_front = torch.tensor([0.]).cuda()
+            self.loss_netG_student_mac_downsample = torch.tensor([0.]).cuda()
+            self.loss_netG_student_mac_resnet = torch.tensor([0.]).cuda()
+            self.loss_netG_student_mac_upsample = torch.tensor([0.]).cuda()
             self.loss_netG_student_mac = torch.tensor([0.]).cuda()
         if not self.opt.no_nuc_loss:
             self.loss_netG_student_nuc = append_loss_nuc(self.netG_student, self.opt.alpha_nuc)
