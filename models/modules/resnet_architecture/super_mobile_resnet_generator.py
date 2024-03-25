@@ -481,35 +481,60 @@ class SuperMobileResnetGenerator_with_SPM_bi(BaseNetwork):
         cnt = 0
         total_macs = torch.tensor([0.]).cuda()
         remain_in_nc = torch.tensor([3]).cuda()
-        for name, module in self.model.named_children():
-            if isinstance(module, SuperConv2d) and module.kernel_size[0] == 7 and name == '1':
-                w = self.pm1.weight.detach()
-                binary_w = (w > 0.5).float()
-                residual = w - binary_w
-                branch_out = self.pm1.weight - residual
-                remain_out_nc_pm = torch.sum(torch.squeeze(branch_out))
-                macs = module.get_macs(remain_in_nc, remain_out_nc_pm)
-                remain_in_nc = remain_out_nc_pm
-                total_macs += macs
-            elif isinstance(module, SuperConv2d) and module.kernel_size[0] == 3:
-                if cnt == 0:
-                    w = self.pm2.weight.detach()
-                    binary_w = (w > 0.5).float()
-                    residual = w - binary_w
-                    branch_out = self.pm2.weight - residual
-                    remain_out_nc_pm = torch.sum(torch.squeeze(branch_out))
-                    macs = module.get_macs(remain_in_nc, remain_out_nc_pm)
-                    remain_in_nc = remain_out_nc_pm
-                    total_macs += macs
-                    cnt += 1
-                elif cnt == 1:
-                    w = self.spm.weight.detach()
-                    binary_w = (w > 0.5).float()
-                    residual = w - binary_w
-                    branch_out = self.spm.weight - residual
-                    remain_out_nc_spm = torch.sum(torch.squeeze(branch_out))
-                    macs = module.get_macs(remain_in_nc, remain_out_nc_spm)
-                    remain_in_nc = remain_out_nc_spm
-                    total_macs += macs
-                    cnt += 1
+
+        w = self.pm1.weight.detach()
+        binary_w = (w > 0.5).float()
+        residual = w - binary_w
+        branch_out = self.pm1.weight - residual
+        remain_out_nc_pm = torch.sum(torch.squeeze(branch_out))
+        macs = self.model[1].get_macs(remain_in_nc, remain_out_nc_pm)
+        remain_in_nc = remain_out_nc_pm
+        total_macs += macs
+
         return total_macs / 1e9, remain_in_nc
+
+    def get_macs_downsample(self, remain_in_nc):
+        total_macs = torch.tensor([0.]).cuda()
+
+        w = self.pm2.weight.detach()
+        binary_w = (w > 0.5).float()
+        residual = w - binary_w
+        branch_out = self.pm2.weight - residual
+        remain_out_nc_pm = torch.sum(torch.squeeze(branch_out))
+        macs = self.model[4].get_macs(remain_in_nc, remain_out_nc_pm)
+        remain_in_nc = remain_out_nc_pm
+        total_macs += macs
+
+        w = self.spm.weight.detach()
+        binary_w = (w > 0.5).float()
+        residual = w - binary_w
+        branch_out = self.spm.weight - residual
+        remain_out_nc_pm = torch.sum(torch.squeeze(branch_out))
+        macs = self.model[7].get_macs(remain_in_nc, remain_out_nc_pm)
+        remain_in_nc = remain_out_nc_pm
+        total_macs += macs
+
+        return total_macs / 1e9, remain_in_nc
+
+    def get_macs_upsample(self, remain_in_nc):
+        total_macs = torch.tensor([0.]).cuda()
+        w = self.pm3.weight.detach()
+        binary_w = (w > 0.5).float()
+        residual = w - binary_w
+        branch_out = self.pm3.weight - residual
+        remain_out_nc_pm = torch.sum(torch.squeeze(branch_out))
+        macs = self.model[19].get_macs(remain_in_nc, remain_out_nc_pm)
+        remain_in_nc = remain_out_nc_pm
+        total_macs += macs
+
+        w = self.pm4.weight.detach()
+        binary_w = (w > 0.5).float()
+        residual = w - binary_w
+        branch_out = self.pm4.weight - residual
+        remain_out_nc_pm = torch.sum(torch.squeeze(branch_out))
+        macs = self.model[22].get_macs(remain_in_nc, remain_out_nc_pm)
+        remain_in_nc = remain_out_nc_pm
+        total_macs += macs
+
+        return total_macs / 1e9, remain_in_nc
+
