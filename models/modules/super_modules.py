@@ -38,6 +38,7 @@ class SuperConvTranspose2d(nn.ConvTranspose2d):
                                                    kernel_size, stride, padding,
                                                    output_padding, groups, bias,
                                                    dilation, padding_mode)
+        self.resolution = None
 
     def forward(self, x, config, output_size=None):
         num_spatial_dims = 2
@@ -50,9 +51,15 @@ class SuperConvTranspose2d(nn.ConvTranspose2d):
             bias = self.bias[:out_nc]
         else:
             bias = None
-        return F.conv_transpose2d(x, weight, bias, self.stride, self.padding,
+        out = F.conv_transpose2d(x, weight, bias, self.stride, self.padding,
                                   output_padding, self.groups, self.dilation)
+        self.resolution = out.shape[2]
+        return out
 
+    def get_macs(self, remain_in_nc, remain_out_nc):
+        assert self.resolution is not None
+        conv_macs = self.kernel_size[0] * self.kernel_size[1] * remain_in_nc * self.resolution * self.resolution * remain_out_nc
+        return conv_macs
 
 class SuperSeparableConv2d(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, norm_layer=nn.InstanceNorm2d,
