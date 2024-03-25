@@ -205,7 +205,7 @@ def visualize_pruned_model(model, iter):
     dic_model = {'name': [], 'total': [], 'remain': []}
 
     for name, module in model.model.named_modules():
-        if isinstance(module, nn.Conv2d):
+        if isinstance(module, nn.Conv2d) or isinstance(module, nn.ConvTranspose2d):
             if not 'pm' in name and not 'spm' in name:  # only original conv
                 if name == '1':
                     w = model.pm1.weight.detach()
@@ -241,6 +241,19 @@ def visualize_pruned_model(model, iter):
                     else:
                         dic_model['total'].append(int(module.weight.shape[0]))
                         dic_model['remain'].append(int(module.weight.shape[0]))
+                elif name == '19':
+                    import pdb; pdb.set_trace()
+                    w = model.pm3.weight.detach()
+                    binary_w = (w > 0.5).float()
+                    pm3 = int(torch.sum(torch.where(binary_w == 1, 1, 0)))
+                    dic_model['total'].append(int(module.weight.shape[1]))
+                    dic_model['remain'].append(pm3)
+                elif name == '22':
+                    w = model.pm4.weight.detach()
+                    binary_w = (w > 0.5).float()
+                    pm4 = int(torch.sum(torch.where(binary_w == 1, 1, 0)))
+                    dic_model['total'].append(int(module.weight.shape[1]))
+                    dic_model['remain'].append(pm4)
                 else:
                     dic_model['total'].append(int(module.weight.shape[0]))
                     dic_model['remain'].append(int(module.weight.shape[0]))
