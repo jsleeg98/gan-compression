@@ -314,9 +314,11 @@ class SuperMobileResnetGenerator_with_SPM_bi(BaseNetwork):
         n_blocks2 = n_blocks1
         n_blocks3 = n_blocks - n_blocks1 - n_blocks2
 
-        self.pm1 = BinaryConv2d(in_channels=ngf * mult // 4, out_channels=ngf * mult // 4, groups=ngf * mult // 4)
-        self.pm2 = BinaryConv2d(in_channels=ngf * mult // 2, out_channels=ngf * mult // 2, groups=ngf * mult // 2)
-        self.spm = BinaryConv2d(in_channels=ngf * mult, out_channels=ngf * mult, groups=ngf * mult)
+        self.pm1 = BinaryConv2d(in_channels=(ngf * mult) // 4, out_channels=(ngf * mult) // 4, groups=(ngf * mult) // 4)  # first
+        self.pm2 = BinaryConv2d(in_channels=(ngf * mult) // 2, out_channels=(ngf * mult) // 2, groups=(ngf * mult) // 2)  # downsample
+        self.spm = BinaryConv2d(in_channels=(ngf * mult), out_channels=(ngf * mult), groups=(ngf * mult))  # downsample, resnet
+        self.pm3 = BinaryConv2d(in_channels=(ngf * mult) // 2, out_channels=(ngf * mult) // 2, groups=(ngf * mult) // 2)  # upsample
+        self.pm4 = BinaryConv2d(in_channels=(ngf * mult) // 4, out_channels=(ngf * mult) // 4, groups=(ngf * mult) // 4)  # upsample
         self.mode = 'prune'  # bi-level
         self.profile_SPM = False  # SPM profile
 
@@ -398,6 +400,12 @@ class SuperMobileResnetGenerator_with_SPM_bi(BaseNetwork):
                     x = module(x, config)
                 else:
                     x = module(x)
+                    if cnt == 1 and isinstance(module, nn.ReLU):
+                        if self.mode == 'prune':
+                            x = self.pm3(x)
+                    elif cnt == 0 and isinstance(module, nn.ReLU):
+                        if self.mode == 'prune':
+                            x = self.pm4(x)
         else:
             configs = self.configs
             input = input.clamp(-1, 1)
@@ -448,12 +456,12 @@ class SuperMobileResnetGenerator_with_SPM_bi(BaseNetwork):
                 module = self.model[i]
                 if isinstance(module, SuperConvTranspose2d):
                     cnt -= 1
-                    if len(configs['channels']) == 6:
-                        channel = configs['channels'][5 - cnt] * (2 ** cnt)
-                    else:
-                        channel = configs['channels'][7 - cnt] * (2 ** cnt)
-                    config = {'channel': channel}
-                    x = module(x, config)
+                    if cnt == 1:
+                        config = {'channel': torch.sum(torch.where(self.pm3.weight > 0.5, 1, 0))}
+                        x = module(x, config)
+                    elif cnt == 0:
+                        config = {'channel': torch.sum(torch.where(self.pm4.weight > 0.5, 1, 0))}
+                        x = module(x, config)
                 elif isinstance(module, SuperConv2d):
                     config = {'channel': module.out_channels}
                     x = module(x, config)
