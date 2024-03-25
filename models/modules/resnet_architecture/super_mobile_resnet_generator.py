@@ -471,7 +471,6 @@ class SuperMobileResnetGenerator_with_SPM_bi(BaseNetwork):
 
     def get_macs_resnet(self, remain_in_nc):
         total_macs = torch.tensor([0.]).cuda()
-        remain_in_nc = torch.tensor([remain_in_nc]).cuda()
         for name, module in self.model.named_children():
             if isinstance(module, SuperMobileResnetBlock_with_SPM_bi):
                 macs, remain_in_nc = module.get_macs(remain_in_nc)
