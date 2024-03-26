@@ -16,14 +16,14 @@ python train_supernet.py --dataroot database/horse2zebra \
   --metaA_path datasets/metas/horse2zebra/train1A.meta \
   --metaB_path datasets/metas/horse2zebra/train1B.meta \
   --config_str 32_32_32_32_32_32_32_32 \
-  --alpha_mac 5.0 \
-  --alpha_nuc 0.001 \
-  --target_ratio 0.5 \
+  --alpha_mac 10.0 \
+  --alpha_nuc 0.0001 \
+  --target_ratio 0.49 \
   --R_max 400 \
   --proj_name cyclegan_bi_level \
-  --log_name supernet_SPM \
+  --log_name supernet_SPM_test \
   --bi_level_train \
-  --bi_level_interval 10 \
-  --bi_level_start_epoch 1 \
+  --bi_level_interval 1 \
+  --bi_level_start_epoch 1
   #  --config_set channels-32 \
 #  --restore_student_G_path logs/cycle_gan/horse2zebra/distill/checkpoints/latest_net_G.pth \
