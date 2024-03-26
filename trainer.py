@@ -152,6 +152,15 @@ class Trainer:
                     model.netG_student.pm4.weight.requires_grad = False
                     model.netG_student.mode = 'prune'
                     print('freeze mode'.center(100, '-'))
+                    if opt.R_max + 1 == epoch:
+                        self.model.best_fid_largest = 1e9
+                        self.model.best_fid_smallest = 1e9
+                        self.model.best_mIoU_largest = -1e9
+                        self.model.best_mIoU_smallest = -1e9
+                        self.model.fids_largest, self.model.fids_smallest = [], []
+                        self.model.mIoUs_largest, self.model.mIoUs_smallest = [], []
+                        print('initialize metric')
+
             else:
                 if opt.R_max < epoch:
                     opt.no_mac_loss = True
