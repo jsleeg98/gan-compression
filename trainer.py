@@ -102,6 +102,8 @@ class Trainer:
                     model.netG_student.spm.weight.requires_grad = False
                     model.netG_student.pm1.weight.requires_grad = False
                     model.netG_student.pm2.weight.requires_grad = False
+                    model.netG_student.pm3.weight.requires_grad = False
+                    model.netG_student.pm4.weight.requires_grad = False
                     model.netG_student.mode = 'original'
                     print('original mode'.center(100, '-'))
                 elif opt.bi_level_start_epoch <= epoch <= opt.R_max:  # bi-level optimization
@@ -116,6 +118,8 @@ class Trainer:
                         model.netG_student.spm.weight.requires_grad = True
                         model.netG_student.pm1.weight.requires_grad = True
                         model.netG_student.pm2.weight.requires_grad = True
+                        model.netG_student.pm3.weight.requires_grad = True
+                        model.netG_student.pm4.weight.requires_grad = True
                         model.netG_student.mode = 'prune'
                         print('prune mode'.center(100, '-'))
                     else:
@@ -129,6 +133,8 @@ class Trainer:
                         model.netG_student.spm.weight.requires_grad = False
                         model.netG_student.pm1.weight.requires_grad = False
                         model.netG_student.pm2.weight.requires_grad = False
+                        model.netG_student.pm3.weight.requires_grad = False
+                        model.netG_student.pm4.weight.requires_grad = False
                         model.netG_student.mode = 'original'
                         print('original mode'.center(100, '-'))
                 elif opt.R_max < epoch:
@@ -142,6 +148,8 @@ class Trainer:
                     model.netG_student.spm.weight.requires_grad = False
                     model.netG_student.pm1.weight.requires_grad = False
                     model.netG_student.pm2.weight.requires_grad = False
+                    model.netG_student.pm3.weight.requires_grad = False
+                    model.netG_student.pm4.weight.requires_grad = False
                     model.netG_student.mode = 'prune'
                     print('freeze mode'.center(100, '-'))
             else:
@@ -156,6 +164,8 @@ class Trainer:
                     model.netG_student.spm.weight.requires_grad = False
                     model.netG_student.pm1.weight.requires_grad = False
                     model.netG_student.pm2.weight.requires_grad = False
+                    model.netG_student.pm3.weight.requires_grad = False
+                    model.netG_student.pm4.weight.requires_grad = False
                     model.netG_student.mode = 'prune'
                     print('freeze mode'.center(100, '-'))
 
@@ -192,7 +202,7 @@ class Trainer:
                     break
             logger.print_info(
                 'End of epoch %d / %d \t Time Taken: %.2f sec' % (epoch, end_epoch, time.time() - epoch_start_time))
-            if epoch % opt.save_epoch_freq == 0 or epoch == end_epoch or total_iter >= opt.niters or epoch % 10 == 9:
+            if epoch % opt.save_epoch_freq == 0 or epoch == end_epoch or total_iter >= opt.niters or epoch > opt.R_max:
                 self.evaluate(epoch, total_iter,
                               'Saving the model at the end of epoch %d, iters %d' % (epoch, total_iter))
                 model.save_networks(epoch)
@@ -242,7 +252,6 @@ def visualize_pruned_model(model, iter):
                         dic_model['total'].append(int(module.weight.shape[0]))
                         dic_model['remain'].append(int(module.weight.shape[0]))
                 elif name == '19':
-                    import pdb; pdb.set_trace()
                     w = model.pm3.weight.detach()
                     binary_w = (w > 0.5).float()
                     pm3 = int(torch.sum(torch.where(binary_w == 1, 1, 0)))
