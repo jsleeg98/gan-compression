@@ -225,6 +225,7 @@ class BaseResnetDistiller(BaseModel):
         raise NotImplementedError
 
     def backward_G(self):
+        wandb.log({'lr/spm': self.optimizers[0].param_groups[0]['lr'], 'lr/rest': self.optimizers[0].param_groups[1]['lr']})
         if self.opt.dataset_mode == 'aligned':
             self.loss_G_recon = self.criterionRecon(self.Sfake_B, self.real_B) * self.opt.lambda_recon
             fake = torch.cat((self.real_A, self.Sfake_B), 1)
