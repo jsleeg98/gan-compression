@@ -124,7 +124,18 @@ class BaseResnetDistiller(BaseModel):
         self.netAs = []
         self.Tacts, self.Sacts = {}, {}
 
-        G_params = [self.netG_student.parameters()]
+        param_groups = [
+            {"params": [], "lr": opt.lr * 0.1, "betas": (opt.beta1, 0.999)},  # SPM learning rate * 0.1
+            {"params": [], "lr": opt.lr, "betas": (opt.beta1, 0.999)}
+        ]
+
+        for name, param in self.netG_student.named_parameters():
+            if 'spm' in name:
+                param_groups[0]["params"].append(param)
+            else:
+                param_groups[1]["params"].append(param)
+        # G_params = [self.netG_student.parameters()]
+        # G_params = param_groups
         for i, n in enumerate(self.mapping_layers):
             ft, fs = self.opt.teacher_ngf, self.opt.student_ngf
             if hasattr(opt, 'distiller'):
@@ -134,11 +145,14 @@ class BaseResnetDistiller(BaseModel):
                 netA = SuperConv2d(in_channels=fs * 4, out_channels=ft * 4, kernel_size=1). \
                     to(self.device)
             networks.init_net(netA)
-            G_params.append(netA.parameters())
+            for name, param in netA.named_parameters():
+                param_groups[1]["params"].append(param)
+            # G_params.append(list(netA.parameters()))
             self.netAs.append(netA)
             self.loss_names.append('G_distill%d' % i)
 
-        self.optimizer_G = torch.optim.Adam(itertools.chain(*G_params), lr=opt.lr, betas=(opt.beta1, 0.999))
+        # self.optimizer_G = torch.optim.Adam(itertools.chain(*G_params), lr=opt.lr, betas=(opt.beta1, 0.999))
+        self.optimizer_G = torch.optim.Adam(param_groups)
         self.optimizer_D = torch.optim.Adam(self.netD.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
         self.optimizers.append(self.optimizer_G)
         self.optimizers.append(self.optimizer_D)
