@@ -228,6 +228,7 @@ def append_loss_nuc(model, alpha_nuc):
     li_pm_w.append(branch_out)
     li_conv_w.append(model.model[7].weight)
 
+    # resnet layers
     for name, module in model.model.named_children():
         if isinstance(module, SuperMobileResnetBlock_with_SPM_bi):
             # add pm weight
