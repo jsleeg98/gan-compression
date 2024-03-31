@@ -246,6 +246,20 @@ def append_loss_nuc(model, alpha_nuc):
             li_conv_w.append(module.conv_block[1].conv[2].weight)  # add first SuperSeparableConv2d's pointwise conv weight
             li_conv_w.append(module.conv_block[6].conv[2].weight)  # add second SuperSeparableConv2d's pointwise conv weight
 
+    # upsampling layers
+    w = model.pm3.weight.detach()
+    binary_w = (w > 0.5).float()
+    residual = w - binary_w
+    branch_out = model.pm3.weight - residual
+    li_pm_w.append(branch_out)
+    li_conv_w.append(model.model[19].weight.transpose(0, 1))
+    w = model.pm4.weight.detach()
+    binary_w = (w > 0.5).float()
+    residual = w - binary_w
+    branch_out = model.pm4.weight - residual
+    li_pm_w.append(branch_out)
+    li_conv_w.append(model.model[22].weight.transpose(0, 1))
+
     li_pruned_conv = []
     for conv, pm in zip(li_conv_w, li_pm_w):
         li_pruned_conv.append(conv * pm)
