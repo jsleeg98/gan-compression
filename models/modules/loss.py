@@ -202,64 +202,68 @@ def append_loss_mac(cur_macs, target_macs, alpha_mac):
     return loss
 
 
-def append_loss_nuc(model, alpha_nuc):
+def append_loss_nuc(model, alpha_nuc, opt):
     li_conv_w = []
     li_pm_w = []
 
     # first layer
-    w = model.pm1.weight.detach()
-    binary_w = (w > 0.5).float()
-    residual = w - binary_w
-    branch_out = model.pm1.weight - residual
-    li_pm_w.append(branch_out)
-    li_conv_w.append(model.model[1].weight)
+    if opt.mac_front:
+        w = model.pm1.weight.detach()
+        binary_w = (w > 0.5).float()
+        residual = w - binary_w
+        branch_out = model.pm1.weight - residual
+        li_pm_w.append(branch_out)
+        li_conv_w.append(model.model[1].weight)
 
     # downsampling layers
-    w = model.pm2.weight.detach()
-    binary_w = (w > 0.5).float()
-    residual = w - binary_w
-    branch_out = model.pm2.weight - residual
-    li_pm_w.append(branch_out)
-    li_conv_w.append(model.model[4].weight)
-    w = model.spm.weight.detach()
-    binary_w = (w > 0.5).float()
-    residual = w - binary_w
-    branch_out = model.spm.weight - residual
-    li_pm_w.append(branch_out)
-    li_conv_w.append(model.model[7].weight)
+    if opt.mac_downsample:
+        w = model.pm2.weight.detach()
+        binary_w = (w > 0.5).float()
+        residual = w - binary_w
+        branch_out = model.pm2.weight - residual
+        li_pm_w.append(branch_out)
+        li_conv_w.append(model.model[4].weight)
+        w = model.spm.weight.detach()
+        binary_w = (w > 0.5).float()
+        residual = w - binary_w
+        branch_out = model.spm.weight - residual
+        li_pm_w.append(branch_out)
+        li_conv_w.append(model.model[7].weight)
 
     # resnet layers
-    for name, module in model.model.named_children():
-        if isinstance(module, SuperMobileResnetBlock_with_SPM_bi):
-            # add pm weight
-            w = module.pm.weight.detach()
-            binary_w = (w > 0.5).float()
-            residual = w - binary_w
-            branch_out = module.pm.weight - residual
-            li_pm_w.append(branch_out)
-            # add spm weight
-            w = module.spm.weight.detach()
-            binary_w = (w > 0.5).float()
-            residual = w - binary_w
-            branch_out = module.spm.weight - residual
-            li_pm_w.append(branch_out)
+    if opt.mac_resnet:
+        for name, module in model.model.named_children():
+            if isinstance(module, SuperMobileResnetBlock_with_SPM_bi):
+                # add pm weight
+                w = module.pm.weight.detach()
+                binary_w = (w > 0.5).float()
+                residual = w - binary_w
+                branch_out = module.pm.weight - residual
+                li_pm_w.append(branch_out)
+                # add spm weight
+                w = module.spm.weight.detach()
+                binary_w = (w > 0.5).float()
+                residual = w - binary_w
+                branch_out = module.spm.weight - residual
+                li_pm_w.append(branch_out)
 
-            li_conv_w.append(module.conv_block[1].conv[2].weight)  # add first SuperSeparableConv2d's pointwise conv weight
-            li_conv_w.append(module.conv_block[6].conv[2].weight)  # add second SuperSeparableConv2d's pointwise conv weight
+                li_conv_w.append(module.conv_block[1].conv[2].weight)  # add first SuperSeparableConv2d's pointwise conv weight
+                li_conv_w.append(module.conv_block[6].conv[2].weight)  # add second SuperSeparableConv2d's pointwise conv weight
 
     # upsampling layers
-    w = model.pm3.weight.detach()
-    binary_w = (w > 0.5).float()
-    residual = w - binary_w
-    branch_out = model.pm3.weight - residual
-    li_pm_w.append(branch_out)
-    li_conv_w.append(model.model[19].weight.transpose(0, 1))
-    w = model.pm4.weight.detach()
-    binary_w = (w > 0.5).float()
-    residual = w - binary_w
-    branch_out = model.pm4.weight - residual
-    li_pm_w.append(branch_out)
-    li_conv_w.append(model.model[22].weight.transpose(0, 1))
+    if opt.mac_upsample:
+        w = model.pm3.weight.detach()
+        binary_w = (w > 0.5).float()
+        residual = w - binary_w
+        branch_out = model.pm3.weight - residual
+        li_pm_w.append(branch_out)
+        li_conv_w.append(model.model[19].weight.transpose(0, 1))
+        w = model.pm4.weight.detach()
+        binary_w = (w > 0.5).float()
+        residual = w - binary_w
+        branch_out = model.pm4.weight - residual
+        li_pm_w.append(branch_out)
+        li_conv_w.append(model.model[22].weight.transpose(0, 1))
 
     li_pruned_conv = []
     for conv, pm in zip(li_conv_w, li_pm_w):
