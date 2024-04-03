@@ -178,6 +178,11 @@ class Trainer:
                     model.netG_student.mode = 'prune'
                     print('freeze mode'.center(100, '-'))
 
+            if epoch > opt.R_max:
+                if not 2.3 <= model.cur_macs[0] <= 2.7:
+                    print('cur macs 조건 미달 종료')
+                    break
+
             for i, data_i in enumerate(tqdm(dataloader, desc='Batch      ', position=1, leave=False)):
                 iter_start_time = time.time()
                 total_iter += 1

@@ -274,6 +274,7 @@ class BaseResnetDistiller(BaseModel):
             wandb.log({'cur macs resnet ratio' : cur_macs_resnet / 1.2929})
             wandb.log({'cur macs upsample ratio' : cur_macs_upsample / 2.4159})
             wandb.log({'cur macs ratio' : (cur_macs_front + cur_macs_downsample + cur_macs_resnet + cur_macs_upsample) / 4.6211})
+            self.cur_macs = cur_macs_front + cur_macs_downsample + cur_macs_resnet + cur_macs_upsample
             del cur_macs_front, cur_macs_downsample, cur_macs_resnet, cur_macs_upsample
             del target_macs_front, target_macs_downsample, target_macs_resnet, target_macs_upsample
             del remain_in_nc
@@ -293,6 +294,7 @@ class BaseResnetDistiller(BaseModel):
             wandb.log({'cur macs resnet ratio': cur_macs_resnet / 1.2929})
             wandb.log({'cur macs upsample ratio': cur_macs_upsample / 2.4159})
             wandb.log({'cur macs ratio': (cur_macs_front + cur_macs_downsample + cur_macs_resnet + cur_macs_upsample) / 4.6211})
+            self.cur_macs = cur_macs_front + cur_macs_downsample + cur_macs_resnet + cur_macs_upsample
             del cur_macs_front, cur_macs_downsample, cur_macs_resnet, cur_macs_upsample
             del remain_in_nc
             self.loss_netG_student_mac_front = torch.tensor([0.]).cuda()
@@ -301,7 +303,7 @@ class BaseResnetDistiller(BaseModel):
             self.loss_netG_student_mac_upsample = torch.tensor([0.]).cuda()
             self.loss_netG_student_mac = torch.tensor([0.]).cuda()
         if not self.opt.no_nuc_loss:
-            self.loss_netG_student_nuc = append_loss_nuc(self.netG_student, self.opt.alpha_nuc)
+            self.loss_netG_student_nuc = append_loss_nuc(self.netG_student, self.opt.alpha_nuc, self.opt)
         else:
             self.loss_netG_student_nuc = torch.tensor([0.]).cuda()
 
