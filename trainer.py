@@ -288,7 +288,10 @@ def visualize_pruned_model(model, iter):
     bar_1 = plt.bar(idx, dic_model['total'], bar_width, color='gray', alpha=0.5)
     plt.bar(idx, dic_model['remain'], bar_width, color='green', alpha=0.5)
     plt.xticks(list(idx), dic_model['name'], rotation=90)
-    plt.ylim(0, 150)
+    if model.pm1.in_channels == 32:
+        plt.ylim(0, 150)
+    elif model.pm1.in_channels == 64:
+        plt.ylim(0, 300)
     plt.title(f'Cyclegan (iter : {iter})', size=15, weight='bold')
     plt.ylabel('output channels', size=20, weight='bold')
     plt.xlabel('index', size=15, weight='bold')

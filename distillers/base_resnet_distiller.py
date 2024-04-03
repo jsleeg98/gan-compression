@@ -243,12 +243,16 @@ class BaseResnetDistiller(BaseModel):
             cur_macs_downsample, remain_in_nc = self.netG_student.get_macs_downsample(remain_in_nc)
             cur_macs_resnet, remain_in_nc = self.netG_student.get_macs_resnet(remain_in_nc)
             cur_macs_upsample, remain_in_nc = self.netG_student.get_macs_upsample(remain_in_nc)
-
-            target_macs_front = torch.tensor([0.3083]).cuda() * (1 - self.opt.target_ratio)
-            target_macs_downsample = torch.tensor([0.6040]).cuda() * (1 - self.opt.target_ratio)
-            target_macs_resnet = torch.tensor([1.2929]).cuda() * (1 - self.opt.target_ratio)
-            target_macs_upsample = torch.tensor([2.4159]).cuda() * (1 - self.opt.target_ratio)
-
+            if self.netG_student.pm1.in_channels == 32:
+                target_macs_front = torch.tensor([0.3083]).cuda() * (1 - self.opt.target_ratio)
+                target_macs_downsample = torch.tensor([0.6040]).cuda() * (1 - self.opt.target_ratio)
+                target_macs_resnet = torch.tensor([1.2929]).cuda() * (1 - self.opt.target_ratio)
+                target_macs_upsample = torch.tensor([2.4159]).cuda() * (1 - self.opt.target_ratio)
+            elif self.netG_student.pm1.in_channels == 64:
+                target_macs_front = torch.tensor([0.6166]).cuda() * (1 - self.opt.target_ratio)
+                target_macs_downsample = torch.tensor([2.4159]).cuda() * (1 - self.opt.target_ratio)
+                target_macs_resnet = torch.tensor([5.0017]).cuda() * (1 - self.opt.target_ratio)
+                target_macs_upsample = torch.tensor([9.6637]).cuda() * (1 - self.opt.target_ratio)
             self.loss_netG_student_mac_front = append_loss_mac(cur_macs_front, target_macs_front, self.opt.alpha_mac)
             self.loss_netG_student_mac_downsample = append_loss_mac(cur_macs_downsample, target_macs_downsample, self.opt.alpha_mac)
             self.loss_netG_student_mac_resnet = append_loss_mac(cur_macs_resnet, target_macs_resnet, self.opt.alpha_mac)
@@ -269,11 +273,18 @@ class BaseResnetDistiller(BaseModel):
             wandb.log({'cur macs resnet' : cur_macs_resnet})
             wandb.log({'cur macs upsample' : cur_macs_upsample})
             wandb.log({'cur macs' : cur_macs_front + cur_macs_downsample + cur_macs_resnet + cur_macs_upsample})
-            wandb.log({'cur macs front ratio' : cur_macs_front / 0.3083})
-            wandb.log({'cur macs downsample ratio' : cur_macs_downsample / 0.6040})
-            wandb.log({'cur macs resnet ratio' : cur_macs_resnet / 1.2929})
-            wandb.log({'cur macs upsample ratio' : cur_macs_upsample / 2.4159})
-            wandb.log({'cur macs ratio' : (cur_macs_front + cur_macs_downsample + cur_macs_resnet + cur_macs_upsample) / 4.6211})
+            if self.netG_student.pm1.in_channels == 32:
+                wandb.log({'cur macs front ratio': cur_macs_front / 0.3083})
+                wandb.log({'cur macs downsample ratio': cur_macs_downsample / 0.6040})
+                wandb.log({'cur macs resnet ratio': cur_macs_resnet / 1.2929})
+                wandb.log({'cur macs upsample ratio': cur_macs_upsample / 2.4159})
+                wandb.log({'cur macs ratio' : (cur_macs_front + cur_macs_downsample + cur_macs_resnet + cur_macs_upsample) / 4.6211})
+            elif self.netG_student.pm1.in_channels == 64:
+                wandb.log({'cur macs front ratio': cur_macs_front / 0.6166})
+                wandb.log({'cur macs downsample ratio': cur_macs_downsample / 2.4159})
+                wandb.log({'cur macs resnet ratio': cur_macs_resnet / 5.0017})
+                wandb.log({'cur macs upsample ratio': cur_macs_upsample / 9.6637})
+                wandb.log({'cur macs ratio': (cur_macs_front + cur_macs_downsample + cur_macs_resnet + cur_macs_upsample) / 17.6979})
             self.cur_macs = cur_macs_front + cur_macs_downsample + cur_macs_resnet + cur_macs_upsample
             del cur_macs_front, cur_macs_downsample, cur_macs_resnet, cur_macs_upsample
             del target_macs_front, target_macs_downsample, target_macs_resnet, target_macs_upsample
@@ -289,11 +300,18 @@ class BaseResnetDistiller(BaseModel):
             wandb.log({'cur macs resnet': cur_macs_resnet})
             wandb.log({'cur macs upsample': cur_macs_upsample})
             wandb.log({'cur macs': (cur_macs_front + cur_macs_downsample + cur_macs_resnet + cur_macs_upsample)})
-            wandb.log({'cur macs front ratio': cur_macs_front / 0.3083})
-            wandb.log({'cur macs downsample ratio': cur_macs_downsample / 0.6040})
-            wandb.log({'cur macs resnet ratio': cur_macs_resnet / 1.2929})
-            wandb.log({'cur macs upsample ratio': cur_macs_upsample / 2.4159})
-            wandb.log({'cur macs ratio': (cur_macs_front + cur_macs_downsample + cur_macs_resnet + cur_macs_upsample) / 4.6211})
+            if self.netG_student.pm1.in_channels == 32:
+                wandb.log({'cur macs front ratio': cur_macs_front / 0.3083})
+                wandb.log({'cur macs downsample ratio': cur_macs_downsample / 0.6040})
+                wandb.log({'cur macs resnet ratio': cur_macs_resnet / 1.2929})
+                wandb.log({'cur macs upsample ratio': cur_macs_upsample / 2.4159})
+                wandb.log({'cur macs ratio': (cur_macs_front + cur_macs_downsample + cur_macs_resnet + cur_macs_upsample) / 4.6211})
+            elif self.netG_student.pm1.in_channels == 64:
+                wandb.log({'cur macs front ratio': cur_macs_front / 0.6166})
+                wandb.log({'cur macs downsample ratio': cur_macs_downsample / 2.4159})
+                wandb.log({'cur macs resnet ratio': cur_macs_resnet / 5.0017})
+                wandb.log({'cur macs upsample ratio': cur_macs_upsample / 9.6637})
+                wandb.log({'cur macs ratio': (cur_macs_front + cur_macs_downsample + cur_macs_resnet + cur_macs_upsample) / 17.6979})
             self.cur_macs = cur_macs_front + cur_macs_downsample + cur_macs_resnet + cur_macs_upsample
             del cur_macs_front, cur_macs_downsample, cur_macs_resnet, cur_macs_upsample
             del remain_in_nc
