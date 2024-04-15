@@ -179,7 +179,7 @@ class Trainer:
                     print('freeze mode'.center(100, '-'))
 
             if epoch > opt.R_max:
-                if not 2.3 <= model.cur_macs[0] <= 2.7:
+                if not 2.2 <= model.cur_macs[0] <= 2.35:
                     print('cur macs 조건 미달 종료')
                     break
 
