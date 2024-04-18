@@ -1,0 +1,192 @@
+#!/usr/bin/env bash
+python train_supernet.py --dataroot database/horse2zebra \
+  --dataset_mode unaligned \
+  --supernet resnet \
+  --student_netG super_mobile_resnet_9blocks_SPM_bi \
+  --log_dir logs/cycle_gan/horse2zebra/ \
+  --gan_mode lsgan \
+  --student_ngf 32 --ndf 64 \
+  --restore_teacher_G_path ./pretrained/cycle_gan/horse2zebra/mobile/latest_net_G.pth \
+  --restore_D_path ./pretrained/cycle_gan/horse2zebra/mobile/latest_net_D.pth \
+  --restore_student_G_path pretrained/cycle_gan/horse2zebra/supernet/latest_net_G.pth \
+  --real_stat_path real_stat/horse2zebra_B.npz \
+  --lambda_recon 10 --lambda_distill 0.01 \
+  --nepochs 400 --nepochs_decay 200 \
+  --save_epoch_freq 10 \
+  --metaA_path datasets/metas/horse2zebra/train1A.meta \
+  --metaB_path datasets/metas/horse2zebra/train1B.meta \
+  --config_str 32_32_32_32_32_32_32_32 \
+  --alpha_mac 5.0 \
+  --alpha_nuc 0.001 \
+  --target_ratio 0.50 \
+  --mac_front \
+  --mac_downsample \
+  --mac_resnet \
+  --mac_upsample \
+  --R_max 100 \
+  --proj_name cyclegan_batch1 \
+  --log_name supernet \
+  --batch_size 1 \
+  --bi_level_train \
+  --bi_level_interval 10 \
+  --bi_level_start_epoch 1
+
+python train_supernet.py --dataroot database/horse2zebra \
+  --dataset_mode unaligned \
+  --supernet resnet \
+  --student_netG super_mobile_resnet_9blocks_SPM_bi \
+  --log_dir logs/cycle_gan/horse2zebra/ \
+  --gan_mode lsgan \
+  --student_ngf 32 --ndf 64 \
+  --restore_teacher_G_path ./pretrained/cycle_gan/horse2zebra/mobile/latest_net_G.pth \
+  --restore_D_path ./pretrained/cycle_gan/horse2zebra/mobile/latest_net_D.pth \
+  --restore_student_G_path pretrained/cycle_gan/horse2zebra/supernet/latest_net_G.pth \
+  --real_stat_path real_stat/horse2zebra_B.npz \
+  --lambda_recon 10 --lambda_distill 0.01 \
+  --nepochs 400 --nepochs_decay 200 \
+  --save_epoch_freq 10 \
+  --metaA_path datasets/metas/horse2zebra/train1A.meta \
+  --metaB_path datasets/metas/horse2zebra/train1B.meta \
+  --config_str 32_32_32_32_32_32_32_32 \
+  --alpha_mac 5.0 \
+  --alpha_nuc 0.001 \
+  --target_ratio 0.52 \
+  --mac_front \
+  --mac_downsample \
+  --mac_resnet \
+  --mac_upsample \
+  --R_max 100 \
+  --proj_name cyclegan_batch1 \
+  --log_name supernet \
+  --batch_size 1 \
+  --bi_level_train \
+  --bi_level_interval 10 \
+  --bi_level_start_epoch 1
+
+python train_supernet.py --dataroot database/horse2zebra \
+  --dataset_mode unaligned \
+  --supernet resnet \
+  --student_netG super_mobile_resnet_9blocks_SPM_bi \
+  --log_dir logs/cycle_gan/horse2zebra/ \
+  --gan_mode lsgan \
+  --student_ngf 32 --ndf 64 \
+  --restore_teacher_G_path ./pretrained/cycle_gan/horse2zebra/mobile/latest_net_G.pth \
+  --restore_D_path ./pretrained/cycle_gan/horse2zebra/mobile/latest_net_D.pth \
+  --restore_student_G_path pretrained/cycle_gan/horse2zebra/supernet/latest_net_G.pth \
+  --real_stat_path real_stat/horse2zebra_B.npz \
+  --lambda_recon 10 --lambda_distill 0.01 \
+  --nepochs 400 --nepochs_decay 200 \
+  --save_epoch_freq 10 \
+  --metaA_path datasets/metas/horse2zebra/train1A.meta \
+  --metaB_path datasets/metas/horse2zebra/train1B.meta \
+  --config_str 32_32_32_32_32_32_32_32 \
+  --alpha_mac 5.0 \
+  --alpha_nuc 0.001 \
+  --target_ratio 0.54 \
+  --mac_front \
+  --mac_downsample \
+  --mac_resnet \
+  --mac_upsample \
+  --R_max 100 \
+  --proj_name cyclegan_batch1 \
+  --log_name supernet \
+  --batch_size 1 \
+  --bi_level_train \
+  --bi_level_interval 10 \
+  --bi_level_start_epoch 1
+
+python train_supernet.py --dataroot database/horse2zebra \
+  --dataset_mode unaligned \
+  --supernet resnet \
+  --student_netG super_mobile_resnet_9blocks_SPM_bi \
+  --log_dir logs/cycle_gan/horse2zebra/ \
+  --gan_mode lsgan \
+  --student_ngf 32 --ndf 64 \
+  --restore_teacher_G_path ./pretrained/cycle_gan/horse2zebra/mobile/latest_net_G.pth \
+  --restore_D_path ./pretrained/cycle_gan/horse2zebra/mobile/latest_net_D.pth \
+  --restore_student_G_path pretrained/cycle_gan/horse2zebra/supernet/latest_net_G.pth \
+  --real_stat_path real_stat/horse2zebra_B.npz \
+  --lambda_recon 10 --lambda_distill 0.01 \
+  --nepochs 400 --nepochs_decay 200 \
+  --save_epoch_freq 10 \
+  --metaA_path datasets/metas/horse2zebra/train1A.meta \
+  --metaB_path datasets/metas/horse2zebra/train1B.meta \
+  --config_str 32_32_32_32_32_32_32_32 \
+  --alpha_mac 5.0 \
+  --alpha_nuc 0.001 \
+  --target_ratio 0.56 \
+  --mac_front \
+  --mac_downsample \
+  --mac_resnet \
+  --mac_upsample \
+  --R_max 100 \
+  --proj_name cyclegan_batch1 \
+  --log_name supernet \
+  --batch_size 1 \
+  --bi_level_train \
+  --bi_level_interval 10 \
+  --bi_level_start_epoch 1
+
+python train_supernet.py --dataroot database/horse2zebra \
+  --dataset_mode unaligned \
+  --supernet resnet \
+  --student_netG super_mobile_resnet_9blocks_SPM_bi \
+  --log_dir logs/cycle_gan/horse2zebra/ \
+  --gan_mode lsgan \
+  --student_ngf 32 --ndf 64 \
+  --restore_teacher_G_path ./pretrained/cycle_gan/horse2zebra/mobile/latest_net_G.pth \
+  --restore_D_path ./pretrained/cycle_gan/horse2zebra/mobile/latest_net_D.pth \
+  --restore_student_G_path pretrained/cycle_gan/horse2zebra/supernet/latest_net_G.pth \
+  --real_stat_path real_stat/horse2zebra_B.npz \
+  --lambda_recon 10 --lambda_distill 0.01 \
+  --nepochs 400 --nepochs_decay 200 \
+  --save_epoch_freq 10 \
+  --metaA_path datasets/metas/horse2zebra/train1A.meta \
+  --metaB_path datasets/metas/horse2zebra/train1B.meta \
+  --config_str 32_32_32_32_32_32_32_32 \
+  --alpha_mac 5.0 \
+  --alpha_nuc 0.001 \
+  --target_ratio 0.58 \
+  --mac_front \
+  --mac_downsample \
+  --mac_resnet \
+  --mac_upsample \
+  --R_max 100 \
+  --proj_name cyclegan_batch1 \
+  --log_name supernet \
+  --batch_size 1 \
+  --bi_level_train \
+  --bi_level_interval 10 \
+  --bi_level_start_epoch 1
+
+python train_supernet.py --dataroot database/horse2zebra \
+  --dataset_mode unaligned \
+  --supernet resnet \
+  --student_netG super_mobile_resnet_9blocks_SPM_bi \
+  --log_dir logs/cycle_gan/horse2zebra/ \
+  --gan_mode lsgan \
+  --student_ngf 32 --ndf 64 \
+  --restore_teacher_G_path ./pretrained/cycle_gan/horse2zebra/mobile/latest_net_G.pth \
+  --restore_D_path ./pretrained/cycle_gan/horse2zebra/mobile/latest_net_D.pth \
+  --restore_student_G_path pretrained/cycle_gan/horse2zebra/supernet/latest_net_G.pth \
+  --real_stat_path real_stat/horse2zebra_B.npz \
+  --lambda_recon 10 --lambda_distill 0.01 \
+  --nepochs 400 --nepochs_decay 200 \
+  --save_epoch_freq 10 \
+  --metaA_path datasets/metas/horse2zebra/train1A.meta \
+  --metaB_path datasets/metas/horse2zebra/train1B.meta \
+  --config_str 32_32_32_32_32_32_32_32 \
+  --alpha_mac 5.0 \
+  --alpha_nuc 0.001 \
+  --target_ratio 0.60 \
+  --mac_front \
+  --mac_downsample \
+  --mac_resnet \
+  --mac_upsample \
+  --R_max 100 \
+  --proj_name cyclegan_batch1 \
+  --log_name supernet \
+  --batch_size 1 \
+  --bi_level_train \
+  --bi_level_interval 10 \
+  --bi_level_start_epoch 1
